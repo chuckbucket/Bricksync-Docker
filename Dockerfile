@@ -28,3 +28,5 @@ CMD sed -e "s|{BRICKLINK_CONSUMER_KEY}|$BRICKLINK_CONSUMER_KEY|" \
         -e "s|{BRICKLINK_TOKEN_SECRET}|$BRICKLINK_TOKEN_SECRET|" \
         -e "s|{BRICKOWL_KEY}|$BRICKOWL_KEY|" \
         /data/bricksync.conf.template > /data/bricksync.conf.txt && ./bricksync --config bricksync.conf.txt
+
+RUN bricksync
