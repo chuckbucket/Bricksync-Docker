@@ -11,7 +11,7 @@ RUN apk add --no-cache git
 RUN git clone https://github.com/chuckbucket/Bricksync-Docker .
 
 # Copy the configuration template to the container
-COPY /data/bricksync.conf.template /data/bricksync.conf.template
+COPY data/bricksync.conf.txt.template /data/bricksync.conf.text.template
 COPY bricksync /bricksync
 
 # Set environment variables for Bricklink and BrickOwl credentials
