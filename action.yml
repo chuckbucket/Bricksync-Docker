@@ -1,0 +1,32 @@
+# action.yml
+name: 'Bricksync'
+description: 'Greet someone and record the time'
+inputs:
+  BL-CK:  # id of input
+    description: 'Bricklink Consumer Key'
+    required: true
+    default: ''
+  BL-CS:  # id of input
+    description: 'Bricklink Consumer Secret'
+    required: true
+    default: ''
+  BL-TV:  # id of input
+    description: 'Bricklink Token Value'
+    required: true
+    default: ''
+  BL-TS:  # id of input
+    description: 'Bricklink Token Secret'
+    required: true
+    default: ''
+  BO-K:  # id of input
+    description: 'Brickowl Key'
+    required: true
+    default: ''
+outputs:
+  time: # id of output
+    description: 'The time we greeted you'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.who-to-greet }}
