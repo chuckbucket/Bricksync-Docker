@@ -5,7 +5,7 @@ FROM alpine:latest
 WORKDIR /app
 
 # Install required dependencies
-#RUN apk add --no-cache git
+RUN apk add --no-cache libssl1.1
 
 # Copy the configuration template and entrypoint script to the container
 COPY DockerFiles/ ./
