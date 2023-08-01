@@ -8,7 +8,7 @@ WORKDIR /data
 RUN apk add --no-cache git
 
 # Copy the configuration template to the container
-COPY DockerFiles/ /data/
+COPY DockerFiles/ /bricksync/
 
 # Set environment variables for Bricklink and BrickOwl credentials
 ENV BRICKLINK_CONSUMER_KEY ""
