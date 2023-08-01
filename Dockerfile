@@ -7,10 +7,8 @@ WORKDIR /data
 # Install required dependencies
 RUN apk add --no-cache git
 
-# Clone Bricksync from GitHub
-#RUN git clone https://github.com/chuckbucket/Bricksync-Docker .
-
-COPY /DockerFiles/ /data/
+# Copy the configuration template to the container
+COPY DockerFiles/ /data/
 
 # Set environment variables for Bricklink and BrickOwl credentials
 ENV BRICKLINK_CONSUMER_KEY ""
@@ -18,8 +16,6 @@ ENV BRICKLINK_CONSUMER_SECRET ""
 ENV BRICKLINK_TOKEN ""
 ENV BRICKLINK_TOKEN_SECRET ""
 ENV BRICKOWL_KEY ""
-
-Run echo "BLKEY: " $BRICKLINK_CONSUMER_KEY
 
 # Create the final bricksync.conf.txt file by replacing placeholders with environment variables
 CMD sed -e "s|{BRICKLINK_CONSUMER_KEY}|$BRICKLINK_CONSUMER_KEY|" \
