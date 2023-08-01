@@ -1,5 +1,11 @@
 #!/bin/sh
 
+echo "ls of root"
+ls /
+
+echo "ls of app"
+ls -R /app
+
 echo "Hello"
 time=$(date)
 
