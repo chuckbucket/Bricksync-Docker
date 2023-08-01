@@ -2,7 +2,7 @@
 FROM alpine:latest
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /data
 
 # Install required dependencies
 RUN apk add --no-cache git
@@ -10,9 +10,6 @@ RUN apk add --no-cache git
 # Clone Bricksync from GitHub
 RUN git clone https://github.com/chuckbucket/Bricksync-Docker .
 
-# Copy the configuration template to the container
-COPY data/bricksync.conf.txt.template /data/bricksync.conf.text.template
-COPY bricksync /app/bricksync
 
 # Set environment variables for Bricklink and BrickOwl credentials
 ENV BRICKLINK_CONSUMER_KEY ""
@@ -27,4 +24,4 @@ CMD sed -e "s|{BRICKLINK_CONSUMER_KEY}|$BRICKLINK_CONSUMER_KEY|" \
         -e "s|{BRICKLINK_TOKEN}|$BRICKLINK_TOKEN|" \
         -e "s|{BRICKLINK_TOKEN_SECRET}|$BRICKLINK_TOKEN_SECRET|" \
         -e "s|{BRICKOWL_KEY}|$BRICKOWL_KEY|" \
-        data/bricksync.conf.txt.template > data/bricksync.conf.txt && ./app/bricksync
+        bricksync.conf.template > /data/bricksync.conf.txt && ./bricksync --config bricksync.conf.txt
