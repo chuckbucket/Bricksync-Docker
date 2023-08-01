@@ -13,4 +13,4 @@ sed -e "s|{BRICKLINK_CONSUMER_KEY}|$BRICKLINK_CONSUMER_KEY|" \
     data/bricksync.conf.txt.template > data/bricksync.conf.txt
 
 # Execute the main command
-exec ./bricksync
+#exec ./bricksync
