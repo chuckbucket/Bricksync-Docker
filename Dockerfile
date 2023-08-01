@@ -17,8 +17,8 @@ ENV BRICKLINK_TOKEN ""
 ENV BRICKLINK_TOKEN_SECRET ""
 ENV BRICKOWL_KEY ""
 
-RUN echo "Getting Ready to replace keys:"
-RUN ls -R /bricksync/
+CMD echo "Getting Ready to replace keys:"
+CMD ls -R .
 CMD cat data/bricksync.conf.txt.template
 
 # Create the final bricksync.conf.txt file by replacing placeholders with environment variables
