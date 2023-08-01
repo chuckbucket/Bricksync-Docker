@@ -20,8 +20,6 @@ ENV BRICKOWL_KEY ""
 
 # Print some debugging information
 RUN echo "Getting Ready to replace keys:"
-RUN ls -R .
-RUN cat data/bricksync.conf.txt.template
 
 # Set the entrypoint script
 CMD ["/app/Entrypoint.sh"]
