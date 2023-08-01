@@ -19,10 +19,12 @@ ENV BRICKLINK_TOKEN ""
 ENV BRICKLINK_TOKEN_SECRET ""
 ENV BRICKOWL_KEY ""
 
+Run echo "BLKEY: " $BRICKLINK_CONSUMER_KEY
+
 # Create the final bricksync.conf.txt file by replacing placeholders with environment variables
 CMD sed -e "s|{BRICKLINK_CONSUMER_KEY}|$BRICKLINK_CONSUMER_KEY|" \
         -e "s|{BRICKLINK_CONSUMER_SECRET}|$BRICKLINK_CONSUMER_SECRET|" \
         -e "s|{BRICKLINK_TOKEN}|$BRICKLINK_TOKEN|" \
         -e "s|{BRICKLINK_TOKEN_SECRET}|$BRICKLINK_TOKEN_SECRET|" \
         -e "s|{BRICKOWL_KEY}|$BRICKOWL_KEY|" \
-        /data/data/bricksync.conf.template > /data/data/bricksync.conf.txt && ./data/bricksync
+        /data/data/bricksync.conf.template > /data/bricksync.conf.txt && ./data/bricksync
