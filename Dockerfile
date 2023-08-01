@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Copy the configuration template and entrypoint script to the container
 COPY DockerFiles/ ./
-COPY entrypoint.sh ./
+COPY Entrypoint.sh ./
 
 # Set environment variables for Bricklink and BrickOwl credentials
 ENV BRICKLINK_CONSUMER_KEY ""
@@ -24,4 +24,4 @@ RUN ls -R .
 RUN cat data/bricksync.conf.txt.template
 
 # Set the entrypoint script
-CMD ["./entrypoint.sh"]
+CMD ["/app/Entrypoint.sh"]
