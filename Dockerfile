@@ -12,11 +12,11 @@ COPY DockerFiles/ ./
 COPY Entrypoint.sh ./
 
 # Set environment variables for Bricklink and BrickOwl credentials
-ENV BRICKLINK_CONSUMER_KEY ""
-ENV BRICKLINK_CONSUMER_SECRET ""
-ENV BRICKLINK_TOKEN ""
-ENV BRICKLINK_TOKEN_SECRET ""
-ENV BRICKOWL_KEY ""
+ENV BRICKLINK_CONSUMER_KEY "blank"
+ENV BRICKLINK_CONSUMER_SECRET "blank"
+ENV BRICKLINK_TOKEN "blank"
+ENV BRICKLINK_TOKEN_SECRET "blank"
+ENV BRICKOWL_KEY "blank"
 
 # Print some debugging information
 RUN echo "Getting Ready to replace keys:"
