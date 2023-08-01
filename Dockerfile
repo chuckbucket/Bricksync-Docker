@@ -22,9 +22,9 @@ CMD ls -R .
 CMD cat data/bricksync.conf.txt.template
 
 # Create the final bricksync.conf.txt file by replacing placeholders with environment variables
-#CMD sed -e "s|{BRICKLINK_CONSUMER_KEY}|$BRICKLINK_CONSUMER_KEY|" \
-#        -e "s|{BRICKLINK_CONSUMER_SECRET}|$BRICKLINK_CONSUMER_SECRET|" \
-#        -e "s|{BRICKLINK_TOKEN}|$BRICKLINK_TOKEN|" \
-#        -e "s|{BRICKLINK_TOKEN_SECRET}|$BRICKLINK_TOKEN_SECRET|" \
-#        -e "s|{BRICKOWL_KEY}|$BRICKOWL_KEY|" \
-#        /bricksync/data/bricksync.conf.txt.template > /bricksync/data/bricksync.conf.txt && ./bricksync
+CMD sed -e "s|{BRICKLINK_CONSUMER_KEY}|$BRICKLINK_CONSUMER_KEY|" \
+        -e "s|{BRICKLINK_CONSUMER_SECRET}|$BRICKLINK_CONSUMER_SECRET|" \
+        -e "s|{BRICKLINK_TOKEN}|$BRICKLINK_TOKEN|" \
+        -e "s|{BRICKLINK_TOKEN_SECRET}|$BRICKLINK_TOKEN_SECRET|" \
+        -e "s|{BRICKOWL_KEY}|$BRICKOWL_KEY|" \
+        data/bricksync.conf.txt.template > /bricksync/data/bricksync.conf.txt && ./bricksync
