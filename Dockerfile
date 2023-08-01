@@ -12,7 +12,7 @@ RUN git clone https://github.com/chuckbucket/Bricksync-Docker .
 
 # Copy the configuration template to the container
 COPY data/bricksync.conf.txt.template /data/bricksync.conf.text.template
-COPY bricksync /bricksync
+COPY bricksync /app/bricksync
 
 # Set environment variables for Bricklink and BrickOwl credentials
 ENV BRICKLINK_CONSUMER_KEY ""
