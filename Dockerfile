@@ -23,4 +23,4 @@ CMD ls -R .
 CMD cat data/bricksync.conf.txt.template
 
 # Set the entrypoint script
-ENTRYPOINT ["/bricksync/entrypoint.sh"]
+ENTRYPOINT /bricksync/entrypoint.sh
