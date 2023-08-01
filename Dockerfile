@@ -2,13 +2,13 @@
 FROM alpine:latest
 
 # Set the working directory
-WORKDIR /bricksync
+WORKDIR /app
 
 # Install required dependencies
-RUN apk add --no-cache git
+#RUN apk add --no-cache git
 
 # Copy the configuration template to the container
-COPY DockerFiles/ /bricksync/
+COPY DockerFiles/ ./
 
 # Set environment variables for Bricklink and BrickOwl credentials
 ENV BRICKLINK_CONSUMER_KEY ""
@@ -19,7 +19,7 @@ ENV BRICKOWL_KEY ""
 
 RUN echo "Getting Ready to replace keys:"
 RUN ls -R /bricksync/
-CMD cat /bricksync/data/bricksync.conf.txt.template
+CMD cat data/bricksync.conf.txt.template
 
 # Create the final bricksync.conf.txt file by replacing placeholders with environment variables
 #CMD sed -e "s|{BRICKLINK_CONSUMER_KEY}|$BRICKLINK_CONSUMER_KEY|" \
