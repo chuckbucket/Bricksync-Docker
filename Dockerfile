@@ -7,7 +7,7 @@ WORKDIR /app
 # Install required dependencies
 #RUN apk add --no-cache git
 
-# Copy the configuration template to the container
+# Copy the configuration template and entrypoint script to the container
 COPY DockerFiles/ ./
 COPY entrypoint.sh ./
 
@@ -18,9 +18,10 @@ ENV BRICKLINK_TOKEN ""
 ENV BRICKLINK_TOKEN_SECRET ""
 ENV BRICKOWL_KEY ""
 
-CMD echo "Getting Ready to replace keys:"
-CMD ls -R .
-CMD cat data/bricksync.conf.txt.template
+# Print some debugging information
+RUN echo "Getting Ready to replace keys:"
+RUN ls -R .
+RUN cat data/bricksync.conf.txt.template
 
 # Set the entrypoint script
-CMD ./entrypoint.sh
+CMD ["./entrypoint.sh"]
