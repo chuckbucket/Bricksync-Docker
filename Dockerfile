@@ -22,4 +22,4 @@ ENV BRICKOWL_KEY "blank"
 RUN echo "Getting Ready to replace keys:"
 
 # Set the entrypoint script
-CMD ["/app/Entrypoint.sh"]
+CMD "/app/Entrypoint.sh"
