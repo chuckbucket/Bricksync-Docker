@@ -18,3 +18,4 @@ sed -i \
     -e "s|{BRICKOWL_KEY}|$BRICKOWL_KEY|" \
     /app/data/bricksync.conf.txt
 
+./app/bricksync
