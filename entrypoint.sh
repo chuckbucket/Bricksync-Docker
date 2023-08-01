@@ -3,7 +3,7 @@
 echo "Hello"
 time=$(date)
 
-sleep 60
+
 
 # Perform the necessary configuration using sed
 sed -e "s|{BRICKLINK_CONSUMER_KEY}|$BRICKLINK_CONSUMER_KEY|" \
