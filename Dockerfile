@@ -79,8 +79,10 @@ RUN chmod +x /app/vncserver_start.sh && \
     chown ${APP_USER_NAME}:${APP_USER_NAME} ${APP_USER_HOME}/.vnc/xstartup
 
 # Expose VNC and noVNC default ports
-EXPOSE 5901 # VNC default for display :1
-EXPOSE 6901 # noVNC default for display :1
+# VNC default for display :1
+EXPOSE 5901/tcp
+# noVNC default for display :1
+EXPOSE 6901/tcp
 
 # Copy the compiled application from the builder stage
 COPY --from=builder /app/bricksync /app/bricksync
