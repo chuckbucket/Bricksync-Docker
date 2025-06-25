@@ -19,9 +19,12 @@ update_config() {
     local config_file="$3"
     local is_numeric_or_bool="$4" # true if value should not be quoted, false or empty otherwise
 
-    echo "Updating ${key} to ${value}"
+    # Trim leading and trailing whitespace from the value
+    local trimmed_value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    echo "Updating ${key} to ${trimmed_value}"
     # Escape forward slashes for sed, and also & and \ just in case
-    local escaped_value=$(echo "$value" | sed 's/[&\\/]/\\\\&/g')
+    local escaped_value=$(echo "$trimmed_value" | sed 's/[&\\/]/\\\\&/g')
 
     # Check if the key exists
     # The regex now looks for optional quotes and an optional semicolon to make the replacement more robust.
