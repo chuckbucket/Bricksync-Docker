@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BrickSync - Loading...</title>
+    <meta charset="utf-8">
+    <script type="text/javascript">
+        (function() {
+            // The target page for noVNC
+            var targetVncPage = "vnc.html";
+
+            // Current URL information
+            var currentUrl = new URL(window.location.href);
+            var currentPath = window.location.pathname;
+            var currentParams = new URLSearchParams(window.location.search);
+            var currentHash = window.location.hash;
+
+            // Construct the base URL for the target (vnc.html)
+            // Handles cases where currentUrl.pathname might be / or /index.html or /redirect.html
+            var targetUrl = new URL(targetVncPage, currentUrl.origin + currentPath.substring(0, currentPath.lastIndexOf('/') + 1));
+
+            // Copy all existing query parameters to the target URL
+            currentParams.forEach(function(value, key) {
+                targetUrl.searchParams.set(key, value);
+            });
+
+            // Ensure 'autoconnect=true' is set, unless 'autoconnect' is explicitly 'false'
+            if (targetUrl.searchParams.get('autoconnect') !== 'false') {
+                targetUrl.searchParams.set('autoconnect', 'true');
+            }
+            
+            // Add the original hash to the target URL
+            targetUrl.hash = currentHash;
+
+            // Only redirect if:
+            // 1. We are currently on the redirector page (index.html or redirect.html itself if accessed directly)
+            // 2. OR if the target URL (fully constructed with params/hash) is different from the current URL.
+            //    This prevents a loop if the user somehow lands on (e.g.) /vnc.html?autoconnect=true via the redirector's path.
+            var isRedirectorPage = currentPath.endsWith('/') || currentPath.endsWith('/index.html') || currentPath.endsWith('/redirect.html');
+
+            if (isRedirectorPage) {
+                // If we are on a path that is supposed to be the redirector,
+                // and the target href is different, then redirect.
+                if (window.location.href !== targetUrl.href) {
+                    window.location.href = targetUrl.href;
+                } else if (!currentPath.endsWith(targetVncPage)) {
+                    // If href is same, but path is not vnc.html, it means we are on index.html
+                    // but it already has the target parameters. This case is unlikely
+                    // but as a fallback, ensure we are on vnc.html.
+                     window.location.href = targetUrl.href;
+                }
+            }
+        })();
+    </script>
+</head>
+<body>
+    <p>Loading VNC session...</p>
+    <noscript>
+        <p>Please enable JavaScript to use noVNC.</p>
+        <p>If you are not redirected automatically, 
+           <a id="manual_redirect_link" href="vnc.html?autoconnect=true">click here to connect</a>.
+        </p>
+        <script type="text/javascript">
+            // Update the noscript link dynamically if possible (though it's for noscript users)
+            // This part is more of a nice-to-have as it won't run if JS is disabled.
+            (function(){
+                var link = document.getElementById('manual_redirect_link');
+                if (link) {
+                    var params = new URLSearchParams(window.location.search);
+                    if (params.get('autoconnect') !== 'false') {
+                        params.set('autoconnect', 'true');
+                    }
+                    var hash = window.location.hash;
+                    link.href = "vnc.html" + (params.toString() ? '?' + params.toString() : '') + hash;
+                }
+            })();
+        </script>
+    </noscript>
+</body>
+</html>
