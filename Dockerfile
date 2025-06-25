@@ -38,7 +38,7 @@ RUN apt-get update && \
     # Fonts
     xfonts-base \
     xfonts-utils \
-    ttf-dejavu-core \
+    fonts-dejavu-core \
     # Other useful X11 utils, might be needed by Xfce or VNC indirectly
     xauth \
     xkb-data \
