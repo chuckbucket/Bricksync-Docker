@@ -23,8 +23,10 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        push: false # Set to true if you want to push to a registry
-        tags: bricksync-app:latest # Optional: define tags for the image
+        push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/bricksync-app:latest
+          ghcr.io/${{ github.repository_owner }}/bricksync-app:${{ github.sha }}
         # Optional: Add build arguments if your Dockerfile needs them
         # build-args: |
         #   ARG_NAME=value
@@ -49,9 +51,10 @@ jobs:
     #     username: ${{ secrets.DOCKERHUB_USERNAME }}
     #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    # - name: Login to GitHub Container Registry
-    #   uses: docker/login-action@v2
-    #   with:
-    #     registry: ghcr.io
-    #     username: ${{ github.actor }}
-    #     password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Login to GitHub Container Registry
+      if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' # Only login when pushing
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
