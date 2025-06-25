@@ -19,43 +19,84 @@ RUN gcc -std=gnu99 -m64 cpuconf.c cpuinfo.c -O2 -s -o cpuconf && \
 # Use a smaller base image for the final image - changed to bookworm for OpenSSL 3.x
 FROM debian:bookworm-slim
 
-# Install runtime dependencies (OpenSSL 3, bash) and ttyd from binary
+# Install runtime dependencies (OpenSSL 3, bash, supervisor)
+# curl and ca-certificates are kept for now as Xfce/VNC might need to download things or for general utility.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends bash libssl3 curl ca-certificates && \
-    # Download ttyd binary (check for latest version on https://github.com/tsl0922/ttyd/releases)
-    TTYD_VERSION="1.7.4" && \
-    TTYD_ARCH="x86_64" && \
-    curl -sSL "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${TTYD_ARCH}" -o /usr/local/bin/ttyd && \
-    chmod +x /usr/local/bin/ttyd && \
-    # Clean up downloaded packages if curl was installed just for this
-    # If curl is needed by the app, don't remove it. Assuming not for now.
-    # apt-get purge -y --auto-remove curl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+    bash \
+    libssl3 \
+    curl \
+    ca-certificates \
+    supervisor \
+    # Xfce and terminal components
+    xfce4-session \
+    xfce4-panel \
+    xfwm4 \
+    xfce4-settings \
+    xfce4-terminal \
+    dbus-x11 \
+    # Fonts
+    xfonts-base \
+    xfonts-utils \
+    ttf-dejavu-core \
+    # Other useful X11 utils, might be needed by Xfce or VNC indirectly
+    xauth \
+    xkb-data \
+    # TigerVNC server components
+    tigervnc-standalone-server \
+    tigervnc-common \
+    # noVNC and websockify for web UI access
+    novnc \
+    websockify \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directory for supervisor's log files
+RUN mkdir -p /var/log/supervisor
+
+# Create appuser and its home directory
+ENV APP_USER_NAME=appuser
+ENV APP_USER_HOME=/home/${APP_USER_NAME}
+RUN groupadd --gid 1000 ${APP_USER_NAME} || true && \
+    useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home ${APP_USER_NAME} && \
+    mkdir -p ${APP_USER_HOME}/.vnc && \
+    chown -R ${APP_USER_NAME}:${APP_USER_NAME} ${APP_USER_HOME}
+
+# Set user environment variables that might be inherited by VNC session
+ENV HOME=${APP_USER_HOME}
+ENV USER=${APP_USER_NAME}
+ENV LANG=en_US.UTF-8
 
 WORKDIR /app
 
-# Expose ttyd port
-EXPOSE 7681
+# Copy supervisor configuration
+COPY supervisord.conf /etc/supervisor/supervisord.conf
+
+# Copy VNC startup scripts
+COPY vncserver_start.sh /app/vncserver_start.sh
+COPY xstartup ${APP_USER_HOME}/.vnc/xstartup
+RUN chmod +x /app/vncserver_start.sh && \
+    chmod +x ${APP_USER_HOME}/.vnc/xstartup && \
+    chown ${APP_USER_NAME}:${APP_USER_NAME} ${APP_USER_HOME}/.vnc/xstartup
+
+# Expose VNC and noVNC default ports
+EXPOSE 5901 # VNC default for display :1
+EXPOSE 6901 # noVNC default for display :1
 
 # Copy the compiled application from the builder stage
 COPY --from=builder /app/bricksync /app/bricksync
 # Copy the original default config file, the entrypoint script will decide to use it or a user-mounted one
 COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 
-# Copy and set up the entrypoint script
+# Copy and set up the entrypoint script (this will run before supervisord)
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Create the data directory for the effective configuration file
-RUN mkdir -p /app/data
-# Create the data directory mentioned in bricksync.conf.txt for priceguide.cachepath
-# The entrypoint script also has a line to ensure this, but doing it here is fine too.
-RUN mkdir -p /app/data/pgcache # Assuming priceguide.cachepath might be /app/data/pgcache/...
+# Create and set permissions for the data directory
+RUN mkdir -p /app/data/pgcache && \
+    chown -R ${APP_USER_NAME}:${APP_USER_NAME} /app/data
 
-# Expose any ports if necessary (bricksync seems to be a CLI tool, so likely none needed for direct connections)
-
-# Set the entrypoint
+# Entrypoint script handles config and then execs supervisord
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-# CMD can be used to pass arguments to bricksync (via entrypoint.sh) e.g. CMD ["--help"]
+# Default command (not strictly necessary as entrypoint execs)
 CMD []

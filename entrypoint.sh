@@ -153,23 +153,7 @@ echo "--- Effective bricksync.conf (${EFFECTIVE_CONFIG_PATH}) ---"
 cat "${EFFECTIVE_CONFIG_PATH}"
 echo "---------------------------------------------------------"
 
-# 4. Execute bricksync or ttyd for web console
-if [ "$RUN_BRICKSYNC_CONSOLE" = "true" ]; then
-    TTYD_PORT="${TTYD_PORT:-7681}"
-    TTYD_INTERFACE="${TTYD_INTERFACE:-}" # Default allows all interfaces
-    TTYD_CMD="${TTYD_COMMAND:-bash}" # Default command to run in ttyd is bash
-
-    echo "RUN_BRICKSYNC_CONSOLE is true. Starting ttyd."
-    echo "Web console will be available on port: ${TTYD_PORT}"
-    echo "Command to be run by ttyd: ${TTYD_CMD}"
-
-    if [ -n "$TTYD_INTERFACE" ]; then
-      echo "ttyd will listen on interface: ${TTYD_INTERFACE}"
-      exec ttyd --port "${TTYD_PORT}" --interface "${TTYD_INTERFACE}" ${TTYD_CMD}
-    else
-      exec ttyd --port "${TTYD_PORT}" ${TTYD_CMD}
-    fi
-else
-    echo "Starting bricksync application with arguments: $@"
-    exec "${EXECUTABLE_PATH}" "$@"
-fi
+# 4. Execute supervisord
+# All services (VNC, noVNC, Xfce session with bricksync in terminal) are managed by supervisord.
+echo "Configuration complete. Starting supervisord..."
+exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf

@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# Unset session variables to avoid conflicts or issues with dbus
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+
+# Start the Xfce4 session in the background.
+# `startxfce4` is a common script that initializes the Xfce environment.
+# Alternatively, `xfce4-session` could be used directly.
+echo "Starting Xfce4 session..."
+startxfce4 &
+
+# Add a small delay to allow the desktop environment to initialize partially
+# before launching the terminal. This can sometimes help with window placement
+# or ensuring the environment is ready.
+sleep 2
+
+# Launch xfce4-terminal running the bricksync application.
+# The --disable-server option for xfce4-terminal can sometimes be useful in VNC
+# environments to prevent issues with it trying to connect to a pre-existing
+# terminal server, but usually it's not needed.
+# Using -H or --hold to keep the terminal open after bricksync exits might be useful
+# for debugging, but for normal operation, if bricksync exits, the terminal should exit.
+echo "Launching bricksync in xfce4-terminal..."
+xfce4-terminal -e "/app/bricksync" --title="BrickSync Console" &
+
+# Optionally, you can start other applications here.
+# For example, to start the Xfce panel if it's not started by startxfce4 reliably:
+# xfce4-panel &
+
+# A simple window manager fallback in case Xfce doesn't start fully (for debugging)
+# ( sleep 10 && xterm ) &
+
+echo "xstartup script finished."
