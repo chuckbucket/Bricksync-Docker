@@ -35,7 +35,7 @@ fi
 mkdir -p "${HOME}/.vnc"
 
 # Create VNC password file
-echo "${VNC_PASSWORD}" | vncpasswd -f > "${HOME}/.vnc/passwd"
+echo "${VNC_PASSWORD}" | /usr/bin/vncpasswd -f > "${HOME}/.vnc/passwd"
 chmod 600 "${HOME}/.vnc/passwd"
 
 # Ensure xstartup script exists and is executable (will be created in another step)
