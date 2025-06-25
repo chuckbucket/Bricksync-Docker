@@ -46,6 +46,8 @@ COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
+# Create the data directory for the effective configuration file
+RUN mkdir -p /app/data
 # Create the data directory mentioned in bricksync.conf.txt for priceguide.cachepath
 # The entrypoint script also has a line to ensure this, but doing it here is fine too.
 RUN mkdir -p /app/data/pgcache # Assuming priceguide.cachepath might be /app/data/pgcache/...

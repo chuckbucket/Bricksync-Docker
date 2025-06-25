@@ -2,11 +2,15 @@
 set -e
 
 APP_DIR="/app"
+DATA_DIR="${APP_DIR}/data" # Added for clarity
 EXECUTABLE_PATH="${APP_DIR}/bricksync"
-DEFAULT_CONFIG_SOURCE="/app/bricksync.conf.txt" # Original default config from Dockerfile
-EFFECTIVE_CONFIG_PATH="${APP_DIR}/bricksync.conf"
+DEFAULT_CONFIG_SOURCE="/app/bricksync.conf.txt" # Original default config from Dockerfile (template)
+EFFECTIVE_CONFIG_PATH="${DATA_DIR}/bricksync.conf.txt" # Effective config path as per user request
 USER_CONFIG_MOUNT_DIR="/mnt/config" # User mounts their bricksync.conf here
-USER_CONFIG_FILE_PATH="${USER_CONFIG_MOUNT_DIR}/bricksync.conf"
+USER_CONFIG_FILE_PATH="${USER_CONFIG_MOUNT_DIR}/bricksync.conf" # Path for user-mounted custom config
+# Note: USER_CONFIG_FILE_PATH might ideally be bricksync.conf.txt if it's a direct replacement,
+# but current logic copies it, so the name doesn't strictly have to match EFFECTIVE_CONFIG_PATH's extension.
+# For now, leaving USER_CONFIG_FILE_PATH as .conf as it was.
 
 # Function to update config
 update_config() {
