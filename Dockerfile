@@ -19,9 +19,17 @@ RUN gcc -std=gnu99 -m64 cpuconf.c cpuinfo.c -O2 -s -o cpuconf && \
 # Use a smaller base image for the final image
 FROM debian:bullseye-slim
 
-# Install runtime dependencies (OpenSSL, ttyd, bash)
+# Install runtime dependencies (OpenSSL, bash) and ttyd from binary
 RUN apt-get update && \
-    apt-get install -y ttyd bash libssl1.1 && \
+    apt-get install -y --no-install-recommends bash libssl1.1 curl ca-certificates && \
+    # Download ttyd binary (check for latest version on https://github.com/tsl0922/ttyd/releases)
+    TTYD_VERSION="1.7.4" && \
+    TTYD_ARCH="x86_64" && \
+    curl -sSL "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.${TTYD_ARCH}" -o /usr/local/bin/ttyd && \
+    chmod +x /usr/local/bin/ttyd && \
+    # Clean up downloaded packages if curl was installed just for this
+    # If curl is needed by the app, don't remove it. Assuming not for now.
+    # apt-get purge -y --auto-remove curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
