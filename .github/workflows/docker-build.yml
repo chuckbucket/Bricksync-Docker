@@ -1,0 +1,56 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ] # Or your default branch
+  pull_request:
+    branches: [ "main" ] # Or your default branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false # Set to true if you want to push to a registry
+        tags: bricksync-app:latest # Optional: define tags for the image
+        # Optional: Add build arguments if your Dockerfile needs them
+        # build-args: |
+        #   ARG_NAME=value
+        #   ANOTHER_ARG=another_value
+
+    # Optional: If you have tests that can be run against the Docker image
+    # - name: Run tests on Docker image
+    #   run: |
+    #     docker run --rm bricksync-app:latest your-test-command
+    #     # Example: docker run --rm bricksync-app:latest bricksync --version
+    #     # (This assumes your app has a command to verify it, replace with actual test)
+
+# To enable pushing to a Docker registry like Docker Hub or GitHub Container Registry (GHCR):
+# 1. Create secrets in your GitHub repository settings (e.g., DOCKERHUB_USERNAME, DOCKERHUB_TOKEN).
+# 2. Uncomment and configure the "Login to Docker Hub" (or other registry) step.
+# 3. Set `push: true` in the `docker/build-push-action` step.
+# 4. Update `tags` to include your registry username, e.g., `yourusername/bricksync-app:latest`.
+
+    # - name: Login to Docker Hub
+    #   uses: docker/login-action@v2
+    #   with:
+    #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+    #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # - name: Login to GitHub Container Registry
+    #   uses: docker/login-action@v2
+    #   with:
+    #     registry: ghcr.io
+    #     username: ${{ github.actor }}
+    #     password: ${{ secrets.GITHUB_TOKEN }}
