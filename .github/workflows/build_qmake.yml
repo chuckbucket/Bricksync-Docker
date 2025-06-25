@@ -1,12 +1,6 @@
 name: Build Matrix
 
-on:
-  push:
-    branches: [ "main" ] # Or your default branch
-  pull_request:
-    branches: [ "main" ] # Or your default branch
-  workflow_dispatch: # Allows manual triggering
-
+on: [push, workflow_dispatch]
 
 jobs:
   build:

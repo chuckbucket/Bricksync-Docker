@@ -19,10 +19,15 @@ RUN gcc -std=gnu99 -m64 cpuconf.c cpuinfo.c -O2 -s -o cpuconf && \
 # Use a smaller base image for the final image
 FROM debian:bullseye-slim
 
-# Install runtime dependencies (OpenSSL)
-RUN apt-get update && apt-get install -y libssl1.1 && rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies (OpenSSL, ttyd, bash)
+RUN apt-get update && \
+    apt-get install -y ttyd bash libssl1.1 && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Expose ttyd port
+EXPOSE 7681
 
 # Copy the compiled application from the builder stage
 COPY --from=builder /app/bricksync /app/bricksync
