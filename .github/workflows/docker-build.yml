@@ -27,6 +27,7 @@ jobs:
         tags: |
           ghcr.io/${{ github.repository_owner }}/bricksync-app:latest
           ghcr.io/${{ github.repository_owner }}/bricksync-app:${{ github.sha }}
+        provenance: false
         # Optional: Add build arguments if your Dockerfile needs them
         # build-args: |
         #   ARG_NAME=value
