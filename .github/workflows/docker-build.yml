@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
     - name: Checkout repository
@@ -25,8 +28,8 @@ jobs:
         file: ./Dockerfile
         push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         tags: |
-          ghcr.io/${{ github.repository_owner }}/bricksync-app:latest
-          ghcr.io/${{ github.repository_owner }}/bricksync-app:${{ github.sha }}
+          ghcr.io/${{ github.repository_owner }}/bricksync-docker:latest
+          ghcr.io/${{ github.repository_owner }}/bricksync-docker:${{ github.sha }}
         provenance: false
         # Optional: Add build arguments if your Dockerfile needs them
         # build-args: |
