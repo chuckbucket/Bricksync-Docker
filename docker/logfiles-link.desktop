@@ -1,0 +1,7 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Log Files
+Comment=View log file dir.
+Icon=folder-documents
+Exec=pcmanfm /app/data/logs
