@@ -24,17 +24,22 @@ update_config() {
     local escaped_value=$(echo "$value" | sed 's/[&\\/]/\\\\&/g')
 
     # Check if the key exists
-    if grep -q "^${key} =.*" "${config_file}"; then
+    # The regex now looks for optional quotes and an optional semicolon to make the replacement more robust.
+    if grep -q "^${key} =.*[;\"]*.*" "${config_file}"; then
         if [ "$is_numeric_or_bool" = "true" ]; then
-            sed -i "s|^${key} =.*|${key} = ${escaped_value}|" "${config_file}"
+            # Numeric or boolean: key = value;
+            sed -i "s|^${key} =.*[;\"]*.*|${key} = ${escaped_value};|" "${config_file}"
         else
-            # For string values, it's safer if bricksync.conf doesn't expect quotes
-            # Assuming values are generally not quoted in the conf file based on the sample
-            sed -i "s|^${key} =.*|${key} = ${escaped_value}|" "${config_file}"
+            # String: key = "value";
+            sed -i "s|^${key} =.*[;\"]*.*|${key} = \"${escaped_value}\";|" "${config_file}"
         fi
     else
-        # If key doesn't exist, append it
-        echo "${key} = ${escaped_value}" >> "${config_file}"
+        # If key doesn't exist, append it in the correct format
+        if [ "$is_numeric_or_bool" = "true" ]; then
+            echo "${key} = ${escaped_value};" >> "${config_file}"
+        else
+            echo "${key} = \"${escaped_value}\";" >> "${config_file}"
+        fi
     fi
 }
 
