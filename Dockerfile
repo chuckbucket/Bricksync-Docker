@@ -24,17 +24,23 @@ RUN apt-get update && apt-get install -y libssl1.1 && rm -rf /var/lib/apt/lists/
 
 WORKDIR /app
 
-# Copy the compiled application and the default config from the builder stage
+# Copy the compiled application from the builder stage
 COPY --from=builder /app/bricksync /app/bricksync
-COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf
+# Copy the original default config file, the entrypoint script will decide to use it or a user-mounted one
+COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
+
+# Copy and set up the entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Create the data directory mentioned in bricksync.conf.txt for priceguide.cachepath
-RUN mkdir -p data/pgcache
+# The entrypoint script also has a line to ensure this, but doing it here is fine too.
+RUN mkdir -p /app/data/pgcache # Assuming priceguide.cachepath might be /app/data/pgcache/...
 
 # Expose any ports if necessary (bricksync seems to be a CLI tool, so likely none needed for direct connections)
 
 # Set the entrypoint
-ENTRYPOINT ["/app/bricksync"]
+ENTRYPOINT ["/app/entrypoint.sh"]
 
-# Users can mount their own bricksync.conf to /app/bricksync.conf
-# CMD can be used to pass arguments to bricksync if needed, e.g. CMD ["--help"]
+# CMD can be used to pass arguments to bricksync (via entrypoint.sh) e.g. CMD ["--help"]
+CMD []
