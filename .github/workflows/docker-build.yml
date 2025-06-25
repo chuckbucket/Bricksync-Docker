@@ -5,6 +5,7 @@ on:
     branches: [ "main" ] # Or your default branch
   pull_request:
     branches: [ "main" ] # Or your default branch
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   build:
