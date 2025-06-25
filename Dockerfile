@@ -16,12 +16,12 @@ RUN gcc -std=gnu99 -m64 cpuconf.c cpuinfo.c -O2 -s -o cpuconf && \
     ./cpuconf -h && \
     gcc -std=gnu99 -m64 bricksync.c bricksyncconf.c bricksyncnet.c bricksyncinit.c bricksyncinput.c bsantidebug.c bsmessage.c bsmathpuzzle.c bsorder.c bsregister.c bsapihistory.c bstranslation.c bsevalgrade.c bsoutputxml.c bsorderdir.c bspriceguide.c bsmastermode.c bscheck.c bssync.c bsapplydiff.c bsfetchorderinv.c bsresolve.c bscatedit.c bsfetchinv.c bsfetchorderlist.c bsfetchset.c bscheckreg.c bsfetchpriceguide.c tcp.c vtlex.c cpuinfo.c antidebug.c mm.c mmhash.c mmbitmap.c cc.c ccstr.c debugtrack.c tcphttp.c oauth.c bricklink.c brickowl.c brickowlinv.c colortable.c json.c bsx.c bsxpg.c journal.c exclperm.c iolog.c crypthash.c cryptsha1.c rand.c bn512.c bn1024.c rsabn.c -O2 -s -fvisibility=hidden -o bricksync -lm -lpthread -lssl -lcrypto
 
-# Use a smaller base image for the final image
-FROM debian:bullseye-slim
+# Use a smaller base image for the final image - changed to bookworm for OpenSSL 3.x
+FROM debian:bookworm-slim
 
-# Install runtime dependencies (OpenSSL, bash) and ttyd from binary
+# Install runtime dependencies (OpenSSL 3, bash) and ttyd from binary
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends bash libssl1.1 curl ca-certificates && \
+    apt-get install -y --no-install-recommends bash libssl3 curl ca-certificates && \
     # Download ttyd binary (check for latest version on https://github.com/tsl0922/ttyd/releases)
     TTYD_VERSION="1.7.4" && \
     TTYD_ARCH="x86_64" && \
