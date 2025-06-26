@@ -24,7 +24,8 @@ ENV DISPLAY=:1 \
 # No interactive frontend during docker build
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV TERM=xterm # Corrected format
+# Set terminal type
+ENV TERM=xterm
 
 # disable shared memory X11 affecting Chromium
 ENV QT_X11_NO_MITSHM=1 \
