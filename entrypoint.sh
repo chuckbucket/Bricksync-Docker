@@ -234,24 +234,22 @@ X11SOCK="/tmp/.X11-unix/X${VNC_DISPLAY_NUM}"
 echo "INFO: Cleaning up old VNC locks and sockets if any (${VNCLOCK}, ${X11SOCK})..."
 rm -f "${VNCLOCK}" "${X11SOCK}"
 
-#echo "INFO: Starting VNC server (Xtigervnc) in background on display ${VNC_DISPLAY}..."
-#Xtigervnc "${VNC_DISPLAY}" \
-#  -geometry "${VNC_GEOMETRY}" \
-#  -depth "${VNC_DEPTH}" \
-#  -localhost no \
-#  -SecurityTypes VncAuth \
-#  -PasswordFile "${HOME}/.vnc/passwd" \
-#  -desktop "BrickSyncDesktop" \
-#  -Log "*:stderr:100" &
-#XTIGERPID=$!
-#echo "INFO: Xtigervnc started with PID ${XTIGERPID}."
-#
-#echo "INFO: Entrypoint finished setup. Waiting for background processes..."
+echo "INFO: Starting VNC server (Xtigervnc) in background on display ${VNC_DISPLAY}..."
+Xtigervnc "${VNC_DISPLAY}" \
+  -geometry "${VNC_GEOMETRY}" \
+  -depth "${VNC_DEPTH}" \
+  -localhost no \
+  -SecurityTypes VncAuth \
+  -PasswordFile "${HOME}/.vnc/passwd" \
+  -desktop "BrickSyncDesktop" \
+  -Log "*:stderr:100" &
+XTIGERPID=$!
+echo "INFO: Xtigervnc started with PID ${XTIGERPID}."
+
+echo "INFO: Entrypoint finished setup. Waiting for background processes..."
 # Wait for processes to exit
-#wait $XTIGERPID
-#wait $NOVNC_PID
+wait $XTIGERPID
+wait $NOVNC_PID
 
-#echo "INFO: All processes have terminated. Exiting entrypoint."
+echo "INFO: All processes have terminated. Exiting entrypoint."
 
-vncserver $DISPLAY -depth $VNC_DEPTH -geometry $VNC_GEOMETRY -SecurityTypes None -localhost no --I-KNOW-THIS-IS-INSECURE &
-wait
