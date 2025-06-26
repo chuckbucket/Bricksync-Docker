@@ -25,28 +25,28 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     bash \
     libssl3 \
-    curl \    
-    ca-certificates \    
-    supervisor \    
+    curl \
+    ca-certificates \
+    supervisor \
     # Xfce and terminal components
     xfce4-session \
     xfce4-panel \
     xfwm4 \
     xfce4-settings \
     xfce4-terminal \
-    dbus-x11 \    
+    dbus-x11 \
     # Fonts
     xfonts-base \
     xfonts-utils \
-    fonts-dejavu-core \    
+    fonts-dejavu-core \
     # Other useful X11 utils, might be needed by Xfce or VNC indirectly
     xauth \
-    xkb-data \    
+    xkb-data \
     # TigerVNC server components
     tigervnc-standalone-server \
     tigervnc-common \
-    tigervnc-tools \ 
-    # This was the line we fixed
+    tigervnc-tools \\ # Added to provide tigervncpasswd, ensuring line continuation
+    # noVNC and websockify for web UI access
     novnc \
     websockify \
     && rm -rf /var/lib/apt/lists/*
