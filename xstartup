@@ -1,34 +1,67 @@
 #!/bin/sh
 
+XSTARTUP_LOG="${HOME}/.vnc/xstartup.log"
+# Ensure the log file directory exists (it should, but defensive)
+mkdir -p "${HOME}/.vnc"
+
+# Truncate log file at start or use '>>' for appending across VNC session restarts (less ideal for clean debug)
+echo "xstartup: Script started at $(date)" > "${XSTARTUP_LOG}"
+echo "xstartup: USER=$(id -u -n)" >> "${XSTARTUP_LOG}"
+echo "xstartup: UID=$(id -u)" >> "${XSTARTUP_LOG}"
+echo "xstartup: GID=$(id -g)" >> "${XSTARTUP_LOG}"
+echo "xstartup: HOME=${HOME}" >> "${XSTARTUP_LOG}"
+echo "xstartup: DISPLAY=${DISPLAY}" >> "${XSTARTUP_LOG}"
+echo "xstartup: PATH=${PATH}" >> "${XSTARTUP_LOG}"
+echo "xstartup: PWD=$(pwd)" >> "${XSTARTUP_LOG}"
+
 # Unset session variables to avoid conflicts or issues with dbus
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
+echo "xstartup: Unset SESSION_MANAGER and DBUS_SESSION_BUS_ADDRESS" >> "${XSTARTUP_LOG}"
 
-# Start the Xfce4 session in the background.
-# `startxfce4` is a common script that initializes the Xfce environment.
-# Alternatively, `xfce4-session` could be used directly.
-echo "Starting Xfce4 session..."
-startxfce4 &
+# Attempt to start a dbus session if not already running for the session
+# This is often needed for Xfce components to work correctly.
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+    echo "xstartup: Attempting to start dbus-launch..." >> "${XSTARTUP_LOG}"
+    eval $(dbus-launch --sh-syntax --exit-with-session)
+    if [ -n "$DBUS_SESSION_BUS_ADDRESS" ]; then
+        echo "xstartup: dbus-launch started, DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS}" >> "${XSTARTUP_LOG}"
+    else
+        echo "xstartup: dbus-launch FAILED to start." >> "${XSTARTUP_LOG}"
+    fi
+fi
 
-# Add a small delay to allow the desktop environment to initialize partially
-# before launching the terminal. This can sometimes help with window placement
-# or ensuring the environment is ready.
-sleep 2
+echo "xstartup: Attempting to start Xfce4 session with 'startxfce4'..." >> "${XSTARTUP_LOG}"
+startxfce4 >> "${XSTARTUP_LOG}" 2>&1 &
+XFCE_PID=$!
+echo "xstartup: 'startxfce4 &' process launched with PID: ${XFCE_PID}" >> "${XSTARTUP_LOG}"
 
-# Launch xfce4-terminal running the bricksync application.
-# The --disable-server option for xfce4-terminal can sometimes be useful in VNC
-# environments to prevent issues with it trying to connect to a pre-existing
-# terminal server, but usually it's not needed.
-# Using -H or --hold to keep the terminal open after bricksync exits might be useful
-# for debugging, but for normal operation, if bricksync exits, the terminal should exit.
-echo "Launching bricksync in xfce4-terminal..."
-xfce4-terminal -e "/app/bricksync" --title="BrickSync Console" &
+# Give Xfce some time to initialize
+echo "xstartup: Sleeping for 5 seconds to allow Xfce to initialize..." >> "${XSTARTUP_LOG}"
+sleep 5
 
-# Optionally, you can start other applications here.
-# For example, to start the Xfce panel if it's not started by startxfce4 reliably:
-# xfce4-panel &
+echo "xstartup: Checking if Xfce process (PID ${XFCE_PID}) is running..." >> "${XSTARTUP_LOG}"
+if ps -p ${XFCE_PID} > /dev/null; then
+   echo "xstartup: Xfce process (startxfce4 or its child, PID ${XFCE_PID}) appears to be running." >> "${XSTARTUP_LOG}"
+else
+   echo "xstartup: Xfce process (PID ${XFCE_PID}) IS NOT RUNNING after start attempt." >> "${XSTARTUP_LOG}"
+   echo "xstartup: Listing current processes:" >> "${XSTARTUP_LOG}"
+   ps aux >> "${XSTARTUP_LOG}"
+fi
 
-# A simple window manager fallback in case Xfce doesn't start fully (for debugging)
-# ( sleep 10 && xterm ) &
+echo "xstartup: Launching bricksync in xfce4-terminal..." >> "${XSTARTUP_LOG}"
+xfce4-terminal -e "/app/bricksync" --title="BrickSync Console" >> "${XSTARTUP_LOG}" 2>&1 &
+TERMINAL_PID=$!
+echo "xstartup: 'xfce4-terminal -e /app/bricksync &' process launched with PID: ${TERMINAL_PID}" >> "${XSTARTUP_LOG}"
 
-echo "xstartup script finished."
+sleep 2 # Give terminal a moment
+echo "xstartup: Checking if terminal process (PID ${TERMINAL_PID}) is running..." >> "${XSTARTUP_LOG}"
+if ps -p ${TERMINAL_PID} > /dev/null; then
+   echo "xstartup: Terminal process (PID ${TERMINAL_PID}) appears to be running." >> "${XSTARTUP_LOG}"
+else
+   echo "xstartup: Terminal process (PID ${TERMINAL_PID}) IS NOT RUNNING after start attempt." >> "${XSTARTUP_LOG}"
+fi
+
+echo "xstartup: Script finished execution at $(date)." >> "${XSTARTUP_LOG}"
+# End of xstartup, Xfce session and terminal should be running in background.
+# The VNC server keeps the session alive.
