@@ -46,14 +46,19 @@ RUN apt-get update && \
     tigervnc-standalone-server \
     tigervnc-common \
     # Added to provide tigervncpasswd
-    tigervnc-tools \
+    tigervnc-tools \\
     # noVNC and websockify for web UI access
     novnc \
     websockify \
+    # X11 utilities
+    xinit \
+    # Locale support
+    locales \
     && rm -rf /var/lib/apt/lists/*
 
-# apt-file and its cache are not needed in the final image, so the diagnostic step is removed.
-# If further diagnostics are needed, it can be temporarily re-added.
+# Configure locale
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+    locale-gen en_US.UTF-8
 
 # Create directory for supervisor's log files
 RUN mkdir -p /var/log/supervisor
