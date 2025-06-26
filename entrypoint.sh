@@ -55,8 +55,10 @@ echo "INFO: Managing ${EFFECTIVE_CONFIG_PATH}..."
 if [ -f "${USER_CONFIG_FILE_PATH}" ]; then
     echo "INFO: User-provided config found at ${USER_CONFIG_FILE_PATH}. Copying to ${EFFECTIVE_CONFIG_PATH}."
     cp "${USER_CONFIG_FILE_PATH}" "${EFFECTIVE_CONFIG_PATH}"
+
 elif [ -f "${DEFAULT_CONFIG_SOURCE}" ]; then
     echo "INFO: No user-provided config. Using default config from image: ${DEFAULT_CONFIG_SOURCE}."
+
     cp "${DEFAULT_CONFIG_SOURCE}" "${EFFECTIVE_CONFIG_PATH}"
 else
     echo "INFO: No user-provided config and no default image config. Creating minimal ${EFFECTIVE_CONFIG_PATH}."
