@@ -70,7 +70,7 @@ RUN mkdir -p /app
 
 # Copy compiled application and default config from builder stage
 COPY --from=builder /app/bricksync /app/bricksync
-COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt # Default/template config
+COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 
 RUN chown -R dockeruser:dockeruser /home/dockeruser /app && \
     chmod -R 777 /home/dockeruser && \
