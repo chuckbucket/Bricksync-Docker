@@ -72,7 +72,30 @@ echo "INFO: Managing ${EFFECTIVE_CONFIG_PATH}..."
 if [ -f "${USER_CONFIG_FILE_PATH}" ]; then
     echo "INFO: User-provided config found at ${USER_CONFIG_FILE_PATH}. Copying to ${EFFECTIVE_CONFIG_PATH}."
     cp "${USER_CONFIG_FILE_PATH}" "${EFFECTIVE_CONFIG_PATH}"
-elif [ -f "${DEFAULT_CONFIG_SOURCE}" ]; then
+else # Debugging block inserted before this 'else' which leads to the 'elif'
+    echo "--- DEBUGGING PERMISSIONS ---"
+    echo "Current user: $(whoami)"
+    echo "ID: $(id)"
+    echo "Listing /:"
+    ls -la /
+    echo "Listing /app:"
+    ls -la /app
+    echo "Listing /app/data:"
+    ls -la /app/data
+    echo "Source file (/app/bricksync.conf.txt) permissions:"
+    ls -l /app/bricksync.conf.txt
+    echo "Target file (/app/data/bricksync.conf.txt) would be:"
+    ls -l /app/data/bricksync.conf.txt 2>/dev/null || echo "Target file does not exist yet."
+    echo "Attempting to touch /app/data/debug_test_file.txt as $(whoami)..."
+    touch /app/data/debug_test_file.txt
+    if [ $? -eq 0 ]; then
+        echo "SUCCESS: Able to touch /app/data/debug_test_file.txt"
+        rm /app/data/debug_test_file.txt
+    else
+        echo "FAILURE: Unable to touch /app/data/debug_test_file.txt (Error code: $?)"
+    fi
+    echo "--- END DEBUGGING PERMISSIONS ---"
+    if [ -f "${DEFAULT_CONFIG_SOURCE}" ]; then
     echo "INFO: No user-provided config found. Using default config from image: ${DEFAULT_CONFIG_SOURCE}."
     cp "${DEFAULT_CONFIG_SOURCE}" "${EFFECTIVE_CONFIG_PATH}"
 else
