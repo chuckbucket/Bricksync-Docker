@@ -24,7 +24,7 @@ ENV DISPLAY=:1 \
 # No interactive frontend during docker build
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV TERM xterm
+ENV TERM=xterm # Corrected format
 
 # disable shared memory X11 affecting Chromium
 ENV QT_X11_NO_MITSHM=1 \
@@ -58,8 +58,6 @@ COPY --from=builder /app/bricksync /app/bricksync
 COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 
 # Create directories for scripts, user home, VNC, data, and supervisor logs
-# /src is for entrypoint as per user's Dockerfile
-# /app/data for bricksync data, pgcache will be subdirectory
 RUN mkdir -p /src \
              /home/dockeruser/.vnc \
              /app/data/pgcache \
@@ -67,35 +65,31 @@ RUN mkdir -p /src \
              /tmp/.X11-unix && \
     chmod 1777 /tmp/.X11-unix
 
-
 # Copy helper scripts (supervisord.conf was modified, others used as-is from repo)
 COPY entrypoint.sh /src/entrypoint.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY vncserver_start.sh /usr/local/bin/vncserver_start.sh
-COPY xstartup /home/dockeruser/.xstartup_tmp_location # Temp location before user exists
+# COPY xstartup ... line removed
 
 # User setup (User Specified)
-# give every user read write access to the "/root" folder where the binary is cached (as per user comment)
 RUN ls -la /root
 RUN chmod 777 /root # Note: Broad permissions
 
 RUN groupadd -g 61000 dockeruser; \
     useradd -g 61000 -l -m -s /bin/bash -u 61000 dockeruser
 
-# Post user-creation ownership and permissions
-RUN mv /home/dockeruser/.xstartup_tmp_location /home/dockeruser/.vnc/xstartup && \
-    chown -R dockeruser:dockeruser /home/dockeruser && \
+# Post user-creation ownership and permissions (xstartup parts removed)
+RUN chown -R dockeruser:dockeruser /home/dockeruser && \
     chown -R dockeruser:dockeruser /app/data && \
     chmod +x /src/entrypoint.sh \
-             /usr/local/bin/vncserver_start.sh \
-             /home/dockeruser/.vnc/xstartup
+             /usr/local/bin/vncserver_start.sh
+# chmod for xstartup removed
 
 RUN chown -R dockeruser:dockeruser /home/dockeruser;\
     chmod -R 777 /home/dockeruser ;\
     # Sudo permissions for dockeruser
     adduser dockeruser sudo;\
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
 
 USER dockeruser
 
