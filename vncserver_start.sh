@@ -57,5 +57,4 @@ exec /usr/bin/Xtigervnc "${VNC_DISPLAY}" \
   -SecurityTypes VncAuth \
   -PasswordFile "${HOME}/.vnc/passwd" \
   -desktop "BrickSyncDesktop" \
-  -xstartup "${XSTARTUP_PATH}" \
   -Log "*:stderr:100"
