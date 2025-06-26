@@ -132,6 +132,7 @@ brickowl.pipelinequeue = 8;
 EOF
     echo "INFO: Default ${EFFECTIVE_CONFIG_PATH} created."
 fi
+fi
 
 if [ ! -f "${EFFECTIVE_CONFIG_PATH}" ]; then
     echo "CRITICAL ERROR: ${EFFECTIVE_CONFIG_PATH} could not be created."
