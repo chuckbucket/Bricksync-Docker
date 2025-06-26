@@ -50,6 +50,18 @@ RUN apt-get update && \
     websockify \
     && rm -rf /var/lib/apt/lists/*
 
+# Diagnostic step: Verify tigervnc-common installation and vncpasswd path
+RUN echo "--- Checking tigervnc-common installation and vncpasswd path ---" && \
+    if dpkg -s tigervnc-common >/dev/null 2>&1; then \
+        echo "tigervnc-common IS installed. Files:" && \
+        dpkg -L tigervnc-common | grep 'vncpasswd' || echo "vncpasswd not listed in tigervnc-common files by dpkg -L"; \
+    else \
+        echo "tigervnc-common IS NOT installed."; \
+    fi && \
+    echo "Searching for vncpasswd system-wide..." && \
+    find / -name vncpasswd -ls 2>/dev/null || echo "vncpasswd not found by find command" && \
+    echo "--- End of vncpasswd check ---"
+
 # Create directory for supervisor's log files
 RUN mkdir -p /var/log/supervisor
 
