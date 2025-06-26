@@ -1,117 +1,96 @@
-# Use an official GCC image as a build environment
+# Stage 1: Builder for bricksync (from original Dockerfile)
 FROM gcc:latest AS builder
 
-# Install dependencies
+# Install build dependencies for bricksync
 RUN apt-get update && apt-get install -y libssl-dev
 
-# Set the working directory
 WORKDIR /app
-
-# Copy the current directory contents into the container at /app
 COPY . /app
 
-# Compile the application
-# Adapted from the 'compile' script
+# Compile bricksync application
 RUN gcc -std=gnu99 -m64 cpuconf.c cpuinfo.c -O2 -s -o cpuconf && \
     ./cpuconf -h && \
     gcc -std=gnu99 -m64 bricksync.c bricksyncconf.c bricksyncnet.c bricksyncinit.c bricksyncinput.c bsantidebug.c bsmessage.c bsmathpuzzle.c bsorder.c bsregister.c bsapihistory.c bstranslation.c bsevalgrade.c bsoutputxml.c bsorderdir.c bspriceguide.c bsmastermode.c bscheck.c bssync.c bsapplydiff.c bsfetchorderinv.c bsresolve.c bscatedit.c bsfetchinv.c bsfetchorderlist.c bsfetchset.c bscheckreg.c bsfetchpriceguide.c tcp.c vtlex.c cpuinfo.c antidebug.c mm.c mmhash.c mmbitmap.c cc.c ccstr.c debugtrack.c tcphttp.c oauth.c bricklink.c brickowl.c brickowlinv.c colortable.c json.c bsx.c bsxpg.c journal.c exclperm.c iolog.c crypthash.c cryptsha1.c rand.c bn512.c bn1024.c rsabn.c -O2 -s -fvisibility=hidden -o bricksync -lm -lpthread -lssl -lcrypto
 
-# Use a smaller base image for the final image - changed to bookworm for OpenSSL 3.x
-FROM debian:bookworm-slim
+# Stage 2: Main application image (reverted to Debian 11 Bullseye)
+FROM debian:11.1-slim
 
-# Install runtime dependencies (OpenSSL 3, bash, supervisor)
-# curl and ca-certificates are kept for now as Xfce/VNC might need to download things or for general utility.
+ENV DISPLAY=:1 \
+    VNC_PORT=5901 \
+    NO_VNC_PORT=6901 \
+    VNC_COL_DEPTH=32 \
+    VNC_RESOLUTION=1920x1080
+
+# No interactive frontend during docker build
+ENV DEBIAN_FRONTEND=noninteractive
+
+
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    bash \
-    libssl3 \
-    curl \
-    ca-certificates \
-    supervisor \
-    # Xfce and terminal components
-    xfce4-session \
-    xfce4-panel \
-    xfwm4 \
-    xfce4-settings \
-    xfce4-terminal \
-    dbus-x11 \
-    # Fonts
-    xfonts-base \
-    xfonts-utils \
-    fonts-dejavu-core \
-    # Other useful X11 utils, might be needed by Xfce or VNC indirectly
-    xauth \
-    xkb-data \
-    # TigerVNC server components
-    tigervnc-standalone-server \
-    tigervnc-common \
-    # Added to provide tigervncpasswd
-    tigervnc-tools \
-    # noVNC and websockify for web UI access
-    novnc \
-    websockify \
-    # X11 utilities
-    xinit \
-    # Locale support
-    locales \
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install --no-install-recommends -y \
+    xvfb xauth dbus-x11 xfce4 xfce4-terminal \
+    wget sudo curl gpg git bzip2 vim procps python x11-xserver-utils \
+    nano \
+    libssl1.1 \
+    libnss3 libnspr4 libasound2 libgbm1 ca-certificates fonts-liberation xdg-utils \
+    tigervnc-standalone-server tigervnc-common firefox-esr; \
+    curl http://ftp.us.debian.org/debian/pool/main/liba/libappindicator/libappindicator3-1_0.4.92-7_amd64.deb --output /opt/libappindicator3-1_0.4.92-7_amd64.deb && \
+    curl http://ftp.us.debian.org/debian/pool/main/libi/libindicator/libindicator3-7_0.5.0-4_amd64.deb --output /opt/libindicator3-7_0.5.0-4_amd64.deb && \
+    apt-get install -y /opt/libappindicator3-1_0.4.92-7_amd64.deb /opt/libindicator3-7_0.5.0-4_amd64.deb && \
+    \
+    echo "Installing noVNC and websockify..." && \
+    git clone --branch v1.2.0 --single-branch https://github.com/novnc/noVNC.git /opt/noVNC && \
+    git clone --branch v0.9.0 --single-branch https://github.com/novnc/websockify.git /opt/noVNC/utils/websockify && \
+    ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html && \
+    \
+    rm -vf /opt/lib*.deb && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Configure locale
-RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
-    locale-gen en_US.UTF-8
 
-# Create directory for supervisor's log files
-RUN mkdir -p /var/log/supervisor
+ENV TERM=xterm
+# The noVNC installation commands have been moved into the main RUN block that installs packages.
 
-# Create /tmp/.X11-unix directory with appropriate permissions for X server sockets
-RUN mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
+# disable shared memory X11 affecting Chromium
+ENV QT_X11_NO_MITSHM=1 \
+    _X11_NO_MITSHM=1 \
+    _MITSHM=0
 
-# Create appuser and its home directory
-ENV APP_USER_NAME=appuser
-ENV APP_USER_HOME=/home/${APP_USER_NAME}
-RUN groupadd --gid 1000 ${APP_USER_NAME} || true && \
-    useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home ${APP_USER_NAME} && \
-    mkdir -p ${APP_USER_HOME}/.vnc && \
-    chown -R ${APP_USER_NAME}:${APP_USER_NAME} ${APP_USER_HOME}
+RUN mkdir /src # Create /src directory
 
-# Set user environment variables that might be inherited by VNC session
-ENV HOME=${APP_USER_HOME}
-ENV USER=${APP_USER_NAME}
-ENV LANG=en_US.UTF-8
+# Copy entrypoint script and make it executable (as root)
+COPY entrypoint.sh /src/entrypoint.sh
+RUN chmod +x /src/entrypoint.sh
 
-WORKDIR /app
+# give every user read write access to the "/root" folder where the binary is cached (from user example)
+RUN ls -la /root
+RUN chmod 777 /root
 
-# Copy supervisor configuration
-COPY supervisord.conf /etc/supervisor/supervisord.conf
+RUN groupadd -g 61000 dockeruser; \
+    useradd -g 61000 -l -m -s /bin/bash -u 61000 dockeruser
 
-# Copy VNC startup scripts
-COPY vncserver_start.sh /app/vncserver_start.sh
-COPY xstartup ${APP_USER_HOME}/.vnc/xstartup
-RUN chmod +x /app/vncserver_start.sh && \
-    chmod +x ${APP_USER_HOME}/.vnc/xstartup && \
-    chown ${APP_USER_NAME}:${APP_USER_NAME} ${APP_USER_HOME}/.vnc/xstartup
+# COPY assets/config/ /home/dockeruser/.config # User-provided assets folder, comment out as it's not in the repo
 
-# Expose VNC and noVNC default ports
-# VNC default for display :1
-EXPOSE 5901/tcp
-# noVNC default for display :1
-EXPOSE 6901/tcp
+# Create /app directory for bricksync and related files
+RUN mkdir -p /app
 
-# Copy the compiled application from the builder stage
+# Copy compiled application and default config from builder stage
 COPY --from=builder /app/bricksync /app/bricksync
-# Copy the original default config file, the entrypoint script will decide to use it or a user-mounted one
+# Default/template config for bricksync
 COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 
-# Copy and set up the entrypoint script (this will run before supervisord)
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN chown -R dockeruser:dockeruser /home/dockeruser /app && \
+    chmod -R 777 /home/dockeruser && \
+    # chmod u+rwx /app && # Not strictly needed as dockeruser owns /app now
+    adduser dockeruser sudo && \
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Create and set permissions for the data directory
-RUN mkdir -p /app/data/pgcache && \
-    chown -R ${APP_USER_NAME}:${APP_USER_NAME} /app/data
+USER dockeruser
+# versions of local tools
+RUN echo  "debian version:  $(cat /etc/debian_version) \n" \
+          "user:            $(whoami) \n"
 
-# Entrypoint script handles config and then execs supervisord
-ENTRYPOINT ["/app/entrypoint.sh"]
+WORKDIR /app # Set WORKDIR to /app, which is owned by dockeruser
 
-# Default command (not strictly necessary as entrypoint execs)
-CMD []
+#Expose port 5901 to view display using VNC Viewer
+EXPOSE 5901 6901
+ENTRYPOINT ["/src/entrypoint.sh"]
