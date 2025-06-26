@@ -194,7 +194,12 @@ echo "---------------------------------------------------------"
 
 # 4. Execute supervisord
 # All services (VNC, noVNC, Xfce session with bricksync in terminal) were previously managed by supervisord.
-# Now, executing vncserver_start.sh to bring up VNC and Xfce.
-echo "Configuration complete. Starting VNC server..."
+# Now, starting noVNC and then executing vncserver_start.sh to bring up VNC and Xfce.
+echo "INFO: Starting noVNC server in background..."
+/opt/noVNC/utils/launch.sh --listen ${NO_VNC_PORT} --vnc localhost:${VNC_PORT} --web /opt/noVNC &
+NOVNC_PID=$!
+echo "INFO: noVNC started with PID ${NOVNC_PID}. Access it on port ${NO_VNC_PORT}."
+
+echo "INFO: Configuration complete. Starting VNC server (Xtigervnc)..."
 exec /usr/local/bin/vncserver_start.sh
 
