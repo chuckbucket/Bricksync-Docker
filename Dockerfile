@@ -24,32 +24,23 @@ FROM debian:bookworm-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     bash \
-    libssl3 \
-    curl \
-    ca-certificates \
-    supervisor \
-    # Xfce and terminal components
+    libssl3 \    curl \    ca-certificates \    supervisor \
     xfce4-session \
     xfce4-panel \
     xfwm4 \
     xfce4-settings \
     xfce4-terminal \
     dbus-x11 \
-    # Fonts
     xfonts-base \
     xfonts-utils \
     fonts-dejavu-core \
-    # Other useful X11 utils, might be needed by Xfce or VNC indirectly
     xauth \
     xkb-data \
-    # TigerVNC server components
     tigervnc-standalone-server \
     tigervnc-common \
-    tigervnc-tools \\ # Added to provide tigervncpasswd, ensuring line continuation
-    # noVNC and websockify for web UI access
+    tigervnc-tools \
     novnc \
-    websockify \
-    && rm -rf /var/lib/apt/lists/*
+    websockify \    && rm -rf /var/lib/apt/lists/*
 
 # apt-file and its cache are not needed in the final image, so the diagnostic step is removed.
 # If further diagnostics are needed, it can be temporarily re-added.
