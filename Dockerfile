@@ -12,8 +12,8 @@ RUN gcc -std=gnu99 -m64 cpuconf.c cpuinfo.c -O2 -s -o cpuconf && \
     ./cpuconf -h && \
     gcc -std=gnu99 -m64 bricksync.c bricksyncconf.c bricksyncnet.c bricksyncinit.c bricksyncinput.c bsantidebug.c bsmessage.c bsmathpuzzle.c bsorder.c bsregister.c bsapihistory.c bstranslation.c bsevalgrade.c bsoutputxml.c bsorderdir.c bspriceguide.c bsmastermode.c bscheck.c bssync.c bsapplydiff.c bsfetchorderinv.c bsresolve.c bscatedit.c bsfetchinv.c bsfetchorderlist.c bsfetchset.c bscheckreg.c bsfetchpriceguide.c tcp.c vtlex.c cpuinfo.c antidebug.c mm.c mmhash.c mmbitmap.c cc.c ccstr.c debugtrack.c tcphttp.c oauth.c bricklink.c brickowl.c brickowlinv.c colortable.c json.c bsx.c bsxpg.c journal.c exclperm.c iolog.c crypthash.c cryptsha1.c rand.c bn512.c bn1024.c rsabn.c -O2 -s -fvisibility=hidden -o bricksync -lm -lpthread -lssl -lcrypto
 
-# Stage 2: Main application image (based on user's provided Dockerfile, upgraded to Debian 12 Bookworm)
-FROM debian:12-slim
+# Stage 2: Main application image (reverted to Debian 11 Bullseye)
+FROM debian:11.1-slim
 
 ENV DISPLAY=:1 \
     VNC_PORT=5901 \
@@ -30,7 +30,7 @@ RUN apt-get update && \
     xvfb xauth dbus-x11 xfce4 xfce4-terminal \
     wget sudo curl gpg git bzip2 vim procps python x11-xserver-utils \
     nano \
-    libssl3 \
+    libssl1.1 \
     libnss3 libnspr4 libasound2 libgbm1 ca-certificates fonts-liberation xdg-utils \
     tigervnc-standalone-server tigervnc-common firefox-esr; \
     curl http://ftp.us.debian.org/debian/pool/main/liba/libappindicator/libappindicator3-1_0.4.92-7_amd64.deb --output /opt/libappindicator3-1_0.4.92-7_amd64.deb && \
