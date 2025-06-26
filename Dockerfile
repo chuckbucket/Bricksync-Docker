@@ -52,13 +52,13 @@ RUN apt-get update && \
 
 # Diagnostic step: Use apt-file to find vncpasswd and check /usr/bin for VNC binaries
 RUN apt-get update && apt-get install -y --no-install-recommends apt-file && \
-    echo "--- Updating apt-file cache ---" && \
+    echo "--- Updating apt-file cache (v3) ---" && \
     apt-file update && \
-    echo "--- Searching for vncpasswd using apt-file ---" && \
-    apt-file find vncpasswd && \
-    echo "--- Listing /usr/bin/*vnc* ---" && \
+    echo "--- Searching for vncpasswd using apt-file (v3) ---" && \
+    apt-file find vncpasswd || echo "apt-file find vncpasswd found nothing or failed" && \
+    echo "--- Listing /usr/bin/*vnc* (v3) ---" && \
     ls -la /usr/bin/*vnc* || echo "No *vnc* files found in /usr/bin/" && \
-    echo "--- End of apt-file diagnostic ---"
+    echo "--- End of apt-file diagnostic (v3) ---"
 
 # Create directory for supervisor's log files
 RUN mkdir -p /var/log/supervisor
