@@ -1,7 +1,8 @@
-# Stage 1: Builder for bricksync (from original Dockerfile)
-FROM gcc:latest AS builder
+# Stage 1: Builder for bricksync (modified to use Debian Bullseye)
+FROM buildpack-deps:bullseye-scm AS builder
 
-# Install build dependencies for bricksync
+# Install build dependencies for bricksync on Bullseye
+# gcc, make etc. are included in buildpack-deps
 RUN apt-get update && apt-get install -y libssl-dev
 
 WORKDIR /app
