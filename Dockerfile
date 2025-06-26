@@ -1,4 +1,4 @@
-# Stage 1: Builder for bricksync
+# Stage 1: Builder for bricksync (from original Dockerfile)
 FROM gcc:latest AS builder
 
 # Install build dependencies for bricksync
@@ -12,7 +12,7 @@ RUN gcc -std=gnu99 -m64 cpuconf.c cpuinfo.c -O2 -s -o cpuconf && \
     ./cpuconf -h && \
     gcc -std=gnu99 -m64 bricksync.c bricksyncconf.c bricksyncnet.c bricksyncinit.c bricksyncinput.c bsantidebug.c bsmessage.c bsmathpuzzle.c bsorder.c bsregister.c bsapihistory.c bstranslation.c bsevalgrade.c bsoutputxml.c bsorderdir.c bspriceguide.c bsmastermode.c bscheck.c bssync.c bsapplydiff.c bsfetchorderinv.c bsresolve.c bscatedit.c bsfetchinv.c bsfetchorderlist.c bsfetchset.c bscheckreg.c bsfetchpriceguide.c tcp.c vtlex.c cpuinfo.c antidebug.c mm.c mmhash.c mmbitmap.c cc.c ccstr.c debugtrack.c tcphttp.c oauth.c bricklink.c brickowl.c brickowlinv.c colortable.c json.c bsx.c bsxpg.c journal.c exclperm.c iolog.c crypthash.c cryptsha1.c rand.c bn512.c bn1024.c rsabn.c -O2 -s -fvisibility=hidden -o bricksync -lm -lpthread -lssl -lcrypto
 
-# Stage 2: Main application image based on user's specification
+# Stage 2: Main application image (based on user's provided Dockerfile)
 FROM debian:11.1-slim
 
 ENV DISPLAY=:1 \
@@ -24,15 +24,7 @@ ENV DISPLAY=:1 \
 # No interactive frontend during docker build
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Set terminal type
-ENV TERM=xterm
 
-# disable shared memory X11 affecting Chromium
-ENV QT_X11_NO_MITSHM=1 \
-    _X11_NO_MITSHM=1 \
-    _MITSHM=0
-
-# User-specified package installation
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
     xvfb xauth dbus-x11 xfce4 xfce4-terminal \
@@ -46,61 +38,53 @@ RUN apt-get update && \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# User-specified noVNC installation
+
+ENV TERM xterm
+# Install NOVNC.
 RUN     git clone --branch v1.2.0 --single-branch https://github.com/novnc/noVNC.git /opt/noVNC; \
         git clone --branch v0.9.0 --single-branch https://github.com/novnc/websockify.git /opt/noVNC/utils/websockify; \
         ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html
+
+# disable shared memory X11 affecting Chromium
+ENV QT_X11_NO_MITSHM=1 \
+    _X11_NO_MITSHM=1 \
+    _MITSHM=0
+
+RUN mkdir /src # Create /src directory
+
+# Copy entrypoint script and make it executable (as root)
+COPY entrypoint.sh /src/entrypoint.sh
+RUN chmod +x /src/entrypoint.sh
+
+# give every user read write access to the "/root" folder where the binary is cached (from user example)
+RUN ls -la /root
+RUN chmod 777 /root
+
+RUN groupadd -g 61000 dockeruser; \
+    useradd -g 61000 -l -m -s /bin/bash -u 61000 dockeruser
+
+# COPY assets/config/ /home/dockeruser/.config # User-provided assets folder, comment out as it's not in the repo
 
 # Create /app directory for bricksync and related files
 RUN mkdir -p /app
 
 # Copy compiled application and default config from builder stage
 COPY --from=builder /app/bricksync /app/bricksync
-COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
+COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt # Default/template config
 
-# Create directories for scripts, user home, VNC, data, and supervisor logs
-RUN mkdir -p /src \
-             /home/dockeruser/.vnc \
-             /app/data/pgcache \
-             /var/log/supervisor \
-             /tmp/.X11-unix && \
-    chmod 1777 /tmp/.X11-unix
-
-# Copy helper scripts
-COPY entrypoint.sh /src/entrypoint.sh
-COPY xstartup /home/dockeruser/.vnc/xstartup # For VNC session startup
-# vncserver_start.sh removed, logic merged into entrypoint.sh
-# COPY supervisord.conf /etc/supervisor/supervisord.conf # Remains removed
-
-# User setup (User Specified)
-RUN ls -la /root
-RUN chmod 777 /root # Note: Broad permissions
-
-RUN groupadd -g 61000 dockeruser; \
-    useradd -g 61000 -l -m -s /bin/bash -u 61000 dockeruser
-
-# Post user-creation ownership and permissions
-RUN chown -R dockeruser:dockeruser /home/dockeruser && \
-    chown dockeruser:dockeruser /app && \
-    chown -R dockeruser:dockeruser /app/data && \
-    chmod -R u+rwx /app/data && \
-    chmod +x /src/entrypoint.sh \
-             /home/dockeruser/.vnc/xstartup
-
-RUN chown -R dockeruser:dockeruser /home/dockeruser;\
-    chmod -R 777 /home/dockeruser ;\
-    # Sudo permissions for dockeruser
-    adduser dockeruser sudo;\
+RUN chown -R dockeruser:dockeruser /home/dockeruser /app && \
+    chmod -R 777 /home/dockeruser && \
+    # chmod u+rwx /app && # Not strictly needed as dockeruser owns /app now
+    adduser dockeruser sudo && \
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 USER dockeruser
-
-# versions of local tools (as per user's Dockerfile)
+# versions of local tools
 RUN echo  "debian version:  $(cat /etc/debian_version) \n" \
           "user:            $(whoami) \n"
 
-WORKDIR /app
+WORKDIR /app # Set WORKDIR to /app, which is owned by dockeruser
 
+#Expose port 5901 to view display using VNC Viewer
 EXPOSE 5901 6901
 ENTRYPOINT ["/src/entrypoint.sh"]
-CMD []

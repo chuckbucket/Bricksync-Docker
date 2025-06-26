@@ -1,5 +1,0 @@
-#!/bin/sh
-unset SESSION_MANAGER
-unset DBUS_SESSION_BUS_ADDRESS
-# xrdb $HOME/.Xresources # Often useful, but keep it minimal for now
-startxfce4 &
