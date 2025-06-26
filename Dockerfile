@@ -79,12 +79,12 @@ RUN chmod 777 /root # Note: Broad permissions
 RUN groupadd -g 61000 dockeruser; \
     useradd -g 61000 -l -m -s /bin/bash -u 61000 dockeruser
 
-# Post user-creation ownership and permissions (xstartup parts removed)
+# Post user-creation ownership and permissions
 RUN chown -R dockeruser:dockeruser /home/dockeruser && \
+    chown dockeruser:dockeruser /app && \
     chown -R dockeruser:dockeruser /app/data && \
     chmod +x /src/entrypoint.sh \
              /usr/local/bin/vncserver_start.sh
-# chmod for xstartup removed
 
 RUN chown -R dockeruser:dockeruser /home/dockeruser;\
     chmod -R 777 /home/dockeruser ;\
