@@ -83,6 +83,7 @@ RUN groupadd -g 61000 dockeruser; \
 RUN chown -R dockeruser:dockeruser /home/dockeruser && \
     chown dockeruser:dockeruser /app && \
     chown -R dockeruser:dockeruser /app/data && \
+    chmod -R u+rwx /app/data && \
     chmod +x /src/entrypoint.sh \
              /usr/local/bin/vncserver_start.sh
 
