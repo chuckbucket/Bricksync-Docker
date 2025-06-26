@@ -45,7 +45,7 @@ RUN apt-get update && \
     # TigerVNC server components
     tigervnc-standalone-server \
     tigervnc-common \
-    tigervnc-tools \ # Added to provide tigervncpasswd
+    tigervnc-tools \\ # Added to provide tigervncpasswd, ensuring line continuation
     # noVNC and websockify for web UI access
     novnc \
     websockify \
