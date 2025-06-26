@@ -3,6 +3,28 @@ set -e
 
 APP_DIR="/app"
 DATA_DIR="${APP_DIR}/data" # Added for clarity
+
+# Ensure /app/data directory exists and set correct permissions for dockeruser
+echo "INFO: Ensuring ${DATA_DIR} exists and is writable by dockeruser..."
+mkdir -p "${DATA_DIR}"
+if [ -d "${DATA_DIR}" ]; then
+    echo "INFO: Attempting to change ownership of ${DATA_DIR} to dockeruser:dockeruser..."
+    sudo chown -R dockeruser:dockeruser "${DATA_DIR}"
+    if [ $? -eq 0 ]; then
+        echo "INFO: Successfully changed ownership of ${DATA_DIR}."
+        echo "INFO: Permissions for ${DATA_DIR} after chown:"
+        ls -ld "${DATA_DIR}"
+    else
+        echo "WARNING: Failed to change ownership of ${DATA_DIR}. Proceeding, but issues might occur."
+        echo "INFO: Current permissions for ${DATA_DIR}:"
+        ls -ld "${DATA_DIR}"
+    fi
+else
+    echo "CRITICAL: Failed to create ${DATA_DIR}. Exiting."
+    exit 1
+fi
+
+# APP_DIR is already defined, DATA_DIR is defined above for clarity and used here.
 EXECUTABLE_PATH="${APP_DIR}/bricksync"
 DEFAULT_CONFIG_SOURCE="/app/bricksync.conf.txt" # Original default config from Dockerfile (template)
 EFFECTIVE_CONFIG_PATH="${DATA_DIR}/bricksync.conf.txt" # Effective config path as per user request
@@ -72,29 +94,8 @@ echo "INFO: Managing ${EFFECTIVE_CONFIG_PATH}..."
 if [ -f "${USER_CONFIG_FILE_PATH}" ]; then
     echo "INFO: User-provided config found at ${USER_CONFIG_FILE_PATH}. Copying to ${EFFECTIVE_CONFIG_PATH}."
     cp "${USER_CONFIG_FILE_PATH}" "${EFFECTIVE_CONFIG_PATH}"
-else # Debugging block inserted before this 'else' which leads to the 'elif'
-    echo "--- DEBUGGING PERMISSIONS ---"
-    echo "Current user: $(whoami)"
-    echo "ID: $(id)"
-    echo "Listing /:"
-    ls -la /
-    echo "Listing /app:"
-    ls -la /app
-    echo "Listing /app/data:"
-    ls -la /app/data
-    echo "Source file (/app/bricksync.conf.txt) permissions:"
-    ls -l /app/bricksync.conf.txt
-    echo "Target file (/app/data/bricksync.conf.txt) would be:"
-    ls -l /app/data/bricksync.conf.txt 2>/dev/null || echo "Target file does not exist yet."
-    echo "Attempting to touch /app/data/debug_test_file.txt as $(whoami)..."
-    touch /app/data/debug_test_file.txt
-    if [ $? -eq 0 ]; then
-        echo "SUCCESS: Able to touch /app/data/debug_test_file.txt"
-        rm /app/data/debug_test_file.txt
-    else
-        echo "FAILURE: Unable to touch /app/data/debug_test_file.txt (Error code: $?)"
-    fi
-    echo "--- END DEBUGGING PERMISSIONS ---"
+else
+    # No user-provided config, try to use default or create one.
     if [ -f "${DEFAULT_CONFIG_SOURCE}" ]; then
     echo "INFO: No user-provided config found. Using default config from image: ${DEFAULT_CONFIG_SOURCE}."
     cp "${DEFAULT_CONFIG_SOURCE}" "${EFFECTIVE_CONFIG_PATH}"
