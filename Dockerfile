@@ -51,10 +51,10 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Diagnostic step: Verify tigervnc-common installation and vncpasswd path
-RUN echo "--- Checking tigervnc-common installation and vncpasswd path ---" && \
+RUN echo "--- Checking tigervnc-common installation and vncpasswd path (v2) ---" && \
     if dpkg -s tigervnc-common >/dev/null 2>&1; then \
         echo "tigervnc-common IS installed. Files:" && \
-        dpkg -L tigervnc-common | grep 'vncpasswd' || echo "vncpasswd not listed in tigervnc-common files by dpkg -L"; \
+        dpkg -L tigervnc-common | grep 'vncpasswd' || echo "vncpasswd not listed in tigervnc-common files by dpkg -L (v2)"; \
     else \
         echo "tigervnc-common IS NOT installed."; \
     fi && \
