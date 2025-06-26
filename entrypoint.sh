@@ -2,11 +2,15 @@
 set -e
 
 APP_DIR="/app"
+DATA_DIR="${APP_DIR}/data" # Added for clarity
 EXECUTABLE_PATH="${APP_DIR}/bricksync"
-DEFAULT_CONFIG_SOURCE="/app/bricksync.conf.txt" # Original default config from Dockerfile
-EFFECTIVE_CONFIG_PATH="${APP_DIR}/bricksync.conf"
+DEFAULT_CONFIG_SOURCE="/app/bricksync.conf.txt" # Original default config from Dockerfile (template)
+EFFECTIVE_CONFIG_PATH="${DATA_DIR}/bricksync.conf.txt" # Effective config path as per user request
 USER_CONFIG_MOUNT_DIR="/mnt/config" # User mounts their bricksync.conf here
-USER_CONFIG_FILE_PATH="${USER_CONFIG_MOUNT_DIR}/bricksync.conf"
+USER_CONFIG_FILE_PATH="${USER_CONFIG_MOUNT_DIR}/bricksync.conf" # Path for user-mounted custom config
+# Note: USER_CONFIG_FILE_PATH might ideally be bricksync.conf.txt if it's a direct replacement,
+# but current logic copies it, so the name doesn't strictly have to match EFFECTIVE_CONFIG_PATH's extension.
+# For now, leaving USER_CONFIG_FILE_PATH as .conf as it was.
 
 # Function to update config
 update_config() {
@@ -15,32 +19,37 @@ update_config() {
     local config_file="$3"
     local is_numeric_or_bool="$4" # true if value should not be quoted, false or empty otherwise
 
-    echo "DEBUG: update_config: Received key='${key}', value='${value}', config_file='${config_file}', is_numeric_or_bool='${is_numeric_or_bool}'"
 
+    # Trim leading and trailing whitespace from the value
+    local trimmed_value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    echo "Updating ${key} to ${trimmed_value}"
     # Escape forward slashes for sed, and also & and \ just in case
-    local escaped_value=$(echo "$value" | sed 's/[&\\/]/\\\\&/g')
-    echo "DEBUG: update_config: Escaped value='${escaped_value}'"
-
-    local sed_cmd_part1="s|^${key} =.*|${key} = ${escaped_value}|"
-    local sed_cmd_full=""
+    local escaped_value=$(echo "$trimmed_value" | sed 's/[&\\/]/\\\\&/g')
 
     # Check if the key exists
-    if grep -q "^${key} =.*" "${config_file}"; then
-        echo "DEBUG: update_config: Key '${key}' found in '${config_file}'. Preparing to update."
+    # The regex now looks for optional quotes and an optional semicolon to make the replacement more robust.
+    if grep -q "^${key} =.*[;\"]*.*" "${config_file}"; then
         if [ "$is_numeric_or_bool" = "true" ]; then
-            sed_cmd_full="sed -i \"s|^${key} =.*|${key} = ${escaped_value}|\" \"${config_file}\""
+            # Numeric or boolean: key = value;
+            sed -i "s|^${key} =.*[;\"]*.*|${key} = ${escaped_value};|" "${config_file}"
         else
-            sed_cmd_full="sed -i \"s|^${key} =.*|${key} = ${escaped_value}|\" \"${config_file}\""
+            # String: key = "value";
+            sed -i "s|^${key} =.*[;\"]*.*|${key} = \"${escaped_value}\";|" "${config_file}"
+
         fi
         echo "DEBUG: update_config: Executing: ${sed_cmd_full}"
         eval "${sed_cmd_full}" # Using eval to execute the constructed command string
         echo "DEBUG: update_config: sed update for key '${key}' completed."
     else
-        echo "DEBUG: update_config: Key '${key}' not found in '${config_file}'. Preparing to append."
-        local append_line="${key} = ${escaped_value}"
-        echo "DEBUG: update_config: Appending: \"${append_line}\" to \"${config_file}\""
-        echo "${append_line}" >> "${config_file}"
-        echo "DEBUG: update_config: Append for key '${key}' completed."
+
+        # If key doesn't exist, append it in the correct format
+        if [ "$is_numeric_or_bool" = "true" ]; then
+            echo "${key} = ${escaped_value};" >> "${config_file}"
+        else
+            echo "${key} = \"${escaped_value}\";" >> "${config_file}"
+        fi
+
     fi
 }
 
@@ -157,6 +166,9 @@ echo "--- Final effective bricksync.conf (${EFFECTIVE_CONFIG_PATH}) ---"
 cat "${EFFECTIVE_CONFIG_PATH}"
 echo "---------------------------------------------------------"
 
-# 4. Execute bricksync
-echo "INFO: Starting bricksync application with arguments: $@"
-exec "${EXECUTABLE_PATH}" "$@"
+
+# 4. Execute supervisord
+# All services (VNC, noVNC, Xfce session with bricksync in terminal) are managed by supervisord.
+echo "Configuration complete. Starting supervisord..."
+exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+
