@@ -66,11 +66,11 @@ RUN mkdir -p /src \
              /tmp/.X11-unix && \
     chmod 1777 /tmp/.X11-unix
 
-# Copy helper scripts (supervisord.conf was modified, others used as-is from repo)
+# Copy helper scripts
 COPY entrypoint.sh /src/entrypoint.sh
-COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY vncserver_start.sh /usr/local/bin/vncserver_start.sh
-# COPY xstartup ... line removed
+COPY xstartup /home/dockeruser/.vnc/xstartup # xstartup is used by vncserver_start.sh
+# COPY supervisord.conf /etc/supervisor/supervisord.conf # Remains removed
 
 # User setup (User Specified)
 RUN ls -la /root
@@ -85,7 +85,8 @@ RUN chown -R dockeruser:dockeruser /home/dockeruser && \
     chown -R dockeruser:dockeruser /app/data && \
     chmod -R u+rwx /app/data && \
     chmod +x /src/entrypoint.sh \
-             /usr/local/bin/vncserver_start.sh
+             /usr/local/bin/vncserver_start.sh \
+             /home/dockeruser/.vnc/xstartup
 
 RUN chown -R dockeruser:dockeruser /home/dockeruser;\
     chmod -R 777 /home/dockeruser ;\

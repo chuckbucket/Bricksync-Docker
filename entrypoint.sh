@@ -193,7 +193,8 @@ echo "---------------------------------------------------------"
 
 
 # 4. Execute supervisord
-# All services (VNC, noVNC, Xfce session with bricksync in terminal) are managed by supervisord.
-echo "Configuration complete. Starting supervisord..."
-exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+# All services (VNC, noVNC, Xfce session with bricksync in terminal) were previously managed by supervisord.
+# Now, executing vncserver_start.sh to bring up VNC and Xfce.
+echo "Configuration complete. Starting VNC server..."
+exec /usr/local/bin/vncserver_start.sh
 
