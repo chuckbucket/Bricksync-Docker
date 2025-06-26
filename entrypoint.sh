@@ -19,6 +19,7 @@ update_config() {
     local config_file="$3"
     local is_numeric_or_bool="$4" # true if value should not be quoted, false or empty otherwise
 
+
     # Trim leading and trailing whitespace from the value
     local trimmed_value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
@@ -35,41 +36,48 @@ update_config() {
         else
             # String: key = "value";
             sed -i "s|^${key} =.*[;\"]*.*|${key} = \"${escaped_value}\";|" "${config_file}"
+
         fi
+        echo "DEBUG: update_config: Executing: ${sed_cmd_full}"
+        eval "${sed_cmd_full}" # Using eval to execute the constructed command string
+        echo "DEBUG: update_config: sed update for key '${key}' completed."
     else
+
         # If key doesn't exist, append it in the correct format
         if [ "$is_numeric_or_bool" = "true" ]; then
             echo "${key} = ${escaped_value};" >> "${config_file}"
         else
             echo "${key} = \"${escaped_value}\";" >> "${config_file}"
         fi
+
     fi
 }
 
 # 1. Check if bricksync executable exists and is executable
+echo "INFO: Checking for bricksync executable at ${EXECUTABLE_PATH}..."
 if [ ! -x "${EXECUTABLE_PATH}" ]; then
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
     echo "ERROR: ${EXECUTABLE_PATH} not found or not executable."
     echo "Please ensure the Docker image was built correctly."
-    echo "Listing /app directory:"
+    echo "Listing ${APP_DIR} directory:"
     ls -la "${APP_DIR}"
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
     exit 1
 fi
-echo "Found ${EXECUTABLE_PATH}}, permissions:"
+echo "INFO: Found ${EXECUTABLE_PATH}, permissions:"
 ls -l "${EXECUTABLE_PATH}"
 
 # 2. Manage bricksync.conf
+echo "INFO: Managing ${EFFECTIVE_CONFIG_PATH}..."
 if [ -f "${USER_CONFIG_FILE_PATH}" ]; then
-    echo "User-provided config found at ${USER_CONFIG_FILE_PATH}. Copying to ${EFFECTIVE_CONFIG_PATH}."
+    echo "INFO: User-provided config found at ${USER_CONFIG_FILE_PATH}. Copying to ${EFFECTIVE_CONFIG_PATH}."
     cp "${USER_CONFIG_FILE_PATH}" "${EFFECTIVE_CONFIG_PATH}"
 elif [ -f "${DEFAULT_CONFIG_SOURCE}" ]; then
-    echo "No user-provided config found. Using default config from image: ${DEFAULT_CONFIG_SOURCE}."
+    echo "INFO: No user-provided config found. Using default config from image: ${DEFAULT_CONFIG_SOURCE}."
     cp "${DEFAULT_CONFIG_SOURCE}" "${EFFECTIVE_CONFIG_PATH}"
 else
-    echo "No user-provided config and no default config source (${DEFAULT_CONFIG_SOURCE}) found."
-    echo "Creating a minimal ${EFFECTIVE_CONFIG_PATH}."
-    # Create all known keys with empty or default values if minimal file is created
+    echo "INFO: No user-provided config and no default config source (${DEFAULT_CONFIG_SOURCE}) found."
+    echo "INFO: Creating a default ${EFFECTIVE_CONFIG_PATH}."
     cat <<EOF > "${EFFECTIVE_CONFIG_PATH}"
 // General configuration
 autocheck = 1;
@@ -88,7 +96,7 @@ brickowl.failinterval = 300;
 brickowl.pollinterval = 600;
 
 // Price Guide configuration
-priceguide.cachepath = "data/pgcache/priceguide.db"; // Defaulting to a file now
+priceguide.cachepath = "data/pgcache/priceguide.db";
 priceguide.cacheformat = "BrickStock";
 priceguide.cachetime = 5;
 
@@ -99,15 +107,17 @@ checkmessage = 1;
 bricklink.pipelinequeue = 8;
 brickowl.pipelinequeue = 8;
 EOF
+    echo "INFO: Default ${EFFECTIVE_CONFIG_PATH} created."
 fi
 
 if [ ! -f "${EFFECTIVE_CONFIG_PATH}" ]; then
     echo "CRITICAL ERROR: ${EFFECTIVE_CONFIG_PATH} could not be created."
     exit 1
 fi
+echo "INFO: ${EFFECTIVE_CONFIG_PATH} is ready for updates."
 
 # 3. Update settings from environment variables
-echo "Applying environment variable configurations..."
+echo "INFO: Applying environment variable configurations..."
 
 # General
 if [ -n "$BRICKSYNC_AUTOCHECK" ]; then update_config "autocheck" "$BRICKSYNC_AUTOCHECK" "${EFFECTIVE_CONFIG_PATH}" "true"; fi
@@ -128,14 +138,17 @@ if [ -n "$BRICKSYNC_BRICKOWL_POLLINTERVAL" ]; then update_config "brickowl.polli
 # Price Guide
 if [ -n "$BRICKSYNC_PRICEGUIDE_CACHEPATH" ]; then
     update_config "priceguide.cachepath" "$BRICKSYNC_PRICEGUIDE_CACHEPATH" "${EFFECTIVE_CONFIG_PATH}"
-    echo "Ensuring price guide cache path directory exists for: $BRICKSYNC_PRICEGUIDE_CACHEPATH"
+    echo "INFO: Ensuring price guide cache path directory exists for user-defined path: $BRICKSYNC_PRICEGUIDE_CACHEPATH"
     mkdir -p "$(dirname "$BRICKSYNC_PRICEGUIDE_CACHEPATH")"
+    echo "INFO: Directory check/creation for $BRICKSYNC_PRICEGUIDE_CACHEPATH completed."
 else
-    # Ensure default cache path from config exists if not overridden by ENV
     DEFAULT_PG_CACHE_PATH=$(grep '^priceguide.cachepath' "${EFFECTIVE_CONFIG_PATH}" | cut -d '=' -f2 | xargs)
     if [ -n "${DEFAULT_PG_CACHE_PATH}" ]; then
-        echo "Ensuring default price guide cache path directory exists: ${DEFAULT_PG_CACHE_PATH}"
+        echo "INFO: Ensuring default price guide cache path directory exists: ${DEFAULT_PG_CACHE_PATH}"
         mkdir -p "$(dirname "${DEFAULT_PG_CACHE_PATH}")"
+        echo "INFO: Directory check/creation for ${DEFAULT_PG_CACHE_PATH} completed."
+    else
+        echo "WARN: No priceguide.cachepath defined in config or via BRICKSYNC_PRICEGUIDE_CACHEPATH."
     fi
 fi
 if [ -n "$BRICKSYNC_PRICEGUIDE_CACHEFORMAT" ]; then update_config "priceguide.cacheformat" "$BRICKSYNC_PRICEGUIDE_CACHEFORMAT" "${EFFECTIVE_CONFIG_PATH}"; fi
@@ -148,12 +161,14 @@ if [ -n "$BRICKSYNC_CHECKMESSAGE" ]; then update_config "checkmessage" "$BRICKSY
 if [ -n "$BRICKSYNC_BRICKLINK_PIPELINEQUEUE" ]; then update_config "bricklink.pipelinequeue" "$BRICKSYNC_BRICKLINK_PIPELINEQUEUE" "${EFFECTIVE_CONFIG_PATH}" "true"; fi
 if [ -n "$BRICKSYNC_BRICKOWL_PIPELINEQUEUE" ]; then update_config "brickowl.pipelinequeue" "$BRICKSYNC_BRICKOWL_PIPELINEQUEUE" "${EFFECTIVE_CONFIG_PATH}" "true"; fi
 
-
-echo "--- Effective bricksync.conf (${EFFECTIVE_CONFIG_PATH}) ---"
+echo "INFO: All environment variable processing complete."
+echo "--- Final effective bricksync.conf (${EFFECTIVE_CONFIG_PATH}) ---"
 cat "${EFFECTIVE_CONFIG_PATH}"
 echo "---------------------------------------------------------"
+
 
 # 4. Execute supervisord
 # All services (VNC, noVNC, Xfce session with bricksync in terminal) are managed by supervisord.
 echo "Configuration complete. Starting supervisord..."
 exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+
