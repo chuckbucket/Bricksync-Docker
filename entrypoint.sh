@@ -193,13 +193,63 @@ echo "---------------------------------------------------------"
 
 
 # 4. Execute supervisord
-# All services (VNC, noVNC, Xfce session with bricksync in terminal) were previously managed by supervisord.
-# Now, starting noVNC and then executing vncserver_start.sh to bring up VNC and Xfce.
+# Script end - VNC and noVNC Setup & Execution
+
+# Trap SIGINT and SIGTERM to allow for cleanup
+trap 'echo "INFO: Signal received, cleaning up..."; kill -TERM $NOVNC_PID $XTIGERPID; wait $NOVNC_PID; wait $XTIGERPID; echo "INFO: Cleanup complete. Exiting."; exit 0' INT TERM
+
 echo "INFO: Starting noVNC server in background..."
+# Ensure NO_VNC_PORT and VNC_PORT are available, default if not from Dockerfile ENV
+NO_VNC_PORT="${NO_VNC_PORT:-6901}"
+VNC_PORT="${VNC_PORT:-5901}"
 /opt/noVNC/utils/launch.sh --listen ${NO_VNC_PORT} --vnc localhost:${VNC_PORT} --web /opt/noVNC &
 NOVNC_PID=$!
 echo "INFO: noVNC started with PID ${NOVNC_PID}. Access it on port ${NO_VNC_PORT}."
 
-echo "INFO: Configuration complete. Starting VNC server (Xtigervnc)..."
-exec /usr/local/bin/vncserver_start.sh
+# VNC Server Configuration (integrated from vncserver_start.sh)
+VNC_DISPLAY="${DISPLAY:-:1}" # DISPLAY is also from Dockerfile ENV
+VNC_DISPLAY_NUM=$(echo "${VNC_DISPLAY}" | cut -d':' -f2)
+VNC_GEOMETRY="${VNC_RESOLUTION:-1920x1080}" # VNC_RESOLUTION from Dockerfile ENV
+VNC_DEPTH="${VNC_COL_DEPTH:-32}" # VNC_COL_DEPTH from Dockerfile ENV
+
+if [ -z "${HOME}" ]; then
+  echo "ERROR: HOME environment variable is not set. Cannot determine user's home directory." >&2
+  exit 1
+fi
+
+if [ -z "${VNC_PASSWORD}" ]; then
+  echo "ERROR: VNC_PASSWORD environment variable is not set. Please set it to secure your VNC server." >&2
+  exit 1
+fi
+
+echo "INFO: Creating VNC directory and password file..."
+mkdir -p "${HOME}/.vnc"
+echo "${VNC_PASSWORD}" | tigervncpasswd -f > "${HOME}/.vnc/passwd"
+chmod 600 "${HOME}/.vnc/passwd"
+echo "INFO: VNC password file created."
+
+# Clean up any old VNC server locks or sockets
+VNCLOCK="/tmp/.X${VNC_DISPLAY_NUM}-lock"
+X11SOCK="/tmp/.X11-unix/X${VNC_DISPLAY_NUM}"
+echo "INFO: Cleaning up old VNC locks and sockets if any (${VNCLOCK}, ${X11SOCK})..."
+rm -f "${VNCLOCK}" "${X11SOCK}"
+
+echo "INFO: Starting VNC server (Xtigervnc) in background on display ${VNC_DISPLAY}..."
+Xtigervnc "${VNC_DISPLAY}" \
+  -geometry "${VNC_GEOMETRY}" \
+  -depth "${VNC_DEPTH}" \
+  -localhost no \
+  -SecurityTypes VncAuth \
+  -PasswordFile "${HOME}/.vnc/passwd" \
+  -desktop "BrickSyncDesktop" \
+  -Log "*:stderr:100" &
+XTIGERPID=$!
+echo "INFO: Xtigervnc started with PID ${XTIGERPID}."
+
+echo "INFO: Entrypoint finished setup. Waiting for background processes..."
+# Wait for processes to exit
+wait $XTIGERPID
+wait $NOVNC_PID
+
+echo "INFO: All processes have terminated. Exiting entrypoint."
 

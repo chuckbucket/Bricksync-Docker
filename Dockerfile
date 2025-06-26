@@ -68,7 +68,7 @@ RUN mkdir -p /src \
 
 # Copy helper scripts
 COPY entrypoint.sh /src/entrypoint.sh
-COPY vncserver_start.sh /usr/local/bin/vncserver_start.sh
+# vncserver_start.sh removed, logic merged into entrypoint.sh
 # Custom xstartup removed, VNC server will use its default or system default.
 # COPY supervisord.conf /etc/supervisor/supervisord.conf # Remains removed
 
@@ -84,8 +84,7 @@ RUN chown -R dockeruser:dockeruser /home/dockeruser && \
     chown dockeruser:dockeruser /app && \
     chown -R dockeruser:dockeruser /app/data && \
     chmod -R u+rwx /app/data && \
-    chmod +x /src/entrypoint.sh \
-             /usr/local/bin/vncserver_start.sh
+    chmod +x /src/entrypoint.sh
 
 RUN chown -R dockeruser:dockeruser /home/dockeruser;\
     chmod -R 777 /home/dockeruser ;\
