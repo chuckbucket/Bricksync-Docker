@@ -1,47 +1,62 @@
 #!/bin/sh
 set -e
-/usr/bin/echo "vncserver_start.sh: Script started" >&2
-/usr/bin/echo "vncserver_start.sh: USER is $(/usr/bin/id -u -n)" >&2
-/usr/bin/echo "vncserver_start.sh: UID is $(/usr/bin/id -u)" >&2
-/usr/bin/echo "vncserver_start.sh: GID is $(/usr/bin/id -g)" >&2
-/usr/bin/echo "vncserver_start.sh: HOME is ${HOME}" >&2
-/usr/bin/echo "vncserver_start.sh: PATH is ${PATH}" >&2
-/usr/bin/echo "vncserver_start.sh: PWD is $(/bin/pwd)" >&2
 
-/usr/bin/echo "vncserver_start.sh: Listing /app..." >&2
-/bin/ls -la /app >&2
+# VNC Server Configuration
+VNC_DISPLAY="${VNC_DISPLAY:-:1}"
+VNC_DISPLAY_NUM=$(/usr/bin/echo "${VNC_DISPLAY}" | /usr/bin/cut -d':' -f2)
+VNC_GEOMETRY="${VNC_GEOMETRY:-1280x1024}" # Default screen resolution
+VNC_DEPTH="${VNC_DEPTH:-24}" # Default color depth
+VNC_PASSWORD="${VNC_PASSWORD}" # Mandatory: user must set this environment variable
 
-/usr/bin/echo "vncserver_start.sh: Listing /usr/bin/Xtigervnc..." >&2
-if [ -f /usr/bin/Xtigervnc ]; then
-  /bin/ls -la /usr/bin/Xtigervnc >&2
-else
-  /usr/bin/echo "vncserver_start.sh: /usr/bin/Xtigervnc NOT FOUND" >&2
+if [ -z "${HOME}" ]; then
+  /usr/bin/echo "ERROR: HOME environment variable is not set. Cannot determine user's home directory." >&2
+  exit 1
 fi
 
-/usr/bin/echo "vncserver_start.sh: Listing /usr/bin/vncpasswd..." >&2
-if [ -f /usr/bin/vncpasswd ]; then
-  /bin/ls -la /usr/bin/vncpasswd >&2
-else
-  /usr/bin/echo "vncserver_start.sh: /usr/bin/vncpasswd NOT FOUND" >&2
+XSTARTUP_PATH="${HOME}/.vnc/xstartup"
+
+if [ -z "${VNC_PASSWORD}" ]; then
+  /usr/bin/echo "ERROR: VNC_PASSWORD environment variable is not set." >&2
+  /usr/bin/echo "Please set it to secure your VNC server." >&2
+  exit 1
 fi
 
-/usr/bin/echo "vncserver_start.sh: Attempting to execute Xtigervnc --help" >&2
-if /usr/bin/Xtigervnc --help > /dev/null 2>&1; then
-  /usr/bin/echo "vncserver_start.sh: Xtigervnc --help executed successfully" >&2
-else
-  ret_code=$?
-  /usr/bin/echo "vncserver_start.sh: Xtigervnc --help FAILED with status ${ret_code}" >&2
+/usr/bin/mkdir -p "${HOME}/.vnc"
+
+# Create VNC password file using tigervncpasswd
+/usr/bin/echo "Creating VNC password file..." >&2
+/usr/bin/echo "${VNC_PASSWORD}" | /usr/bin/tigervncpasswd -f > "${HOME}/.vnc/passwd"
+/usr/bin/chmod 600 "${HOME}/.vnc/passwd"
+/usr/bin/echo "VNC password file created." >&2
+
+# Ensure xstartup script exists and is executable
+if [ ! -f "${XSTARTUP_PATH}" ]; then
+    /usr/bin/echo "ERROR: ${XSTARTUP_PATH} not found. This script should have been copied by the Dockerfile." >&2
+    # Create a minimal one just in case, though this indicates a build problem
+    /usr/bin/echo "#!/bin/sh" > "${XSTARTUP_PATH}"
+    /usr/bin/echo "unset SESSION_MANAGER DBUS_SESSION_BUS_ADDRESS; xsetroot -solid grey; xterm &" >> "${XSTARTUP_PATH}"
+    /usr/bin/chmod +x "${XSTARTUP_PATH}"
+    /usr/bin/echo "WARNING: Created a minimal fallback ${XSTARTUP_PATH} because the proper one was missing." >&2
+elif [ ! -x "${XSTARTUP_PATH}" ]; then
+    /usr/bin/echo "WARNING: ${XSTARTUP_PATH} is not executable. Setting it now." >&2
+    /usr/bin/chmod +x "${XSTARTUP_PATH}"
 fi
 
-# Also test vncpasswd
-/usr/bin/echo "vncserver_start.sh: Attempting to execute vncpasswd --help" >&2
-if /usr/bin/vncpasswd --help > /dev/null 2>&1; then
-    /usr/bin/echo "vncserver_start.sh: vncpasswd --help executed successfully" >&2
-else
-    ret_code_pw=$?
-    /usr/bin/echo "vncserver_start.sh: vncpasswd --help FAILED with status ${ret_code_pw}" >&2
-fi
+# Clean up any old VNC server locks or sockets for this display
+VNCLOCK="/tmp/.X${VNC_DISPLAY_NUM}-lock"
+X11SOCK="/tmp/.X11-unix/X${VNC_DISPLAY_NUM}"
+/usr/bin/echo "Cleaning up old VNC locks and sockets if any..." >&2
+/usr/bin/rm -f "${VNCLOCK}" "${X11SOCK}"
 
-
-/usr/bin/echo "vncserver_start.sh: Exiting with 0 for debug to prevent supervisor restart loop" >&2
-exit 0 # Intentionally exit cleanly for supervisor
+/usr/bin/echo "Starting Xtigervnc on display ${VNC_DISPLAY} with geometry ${VNC_GEOMETRY}..." >&2
+# Run Xtigervnc in the foreground for supervisor
+exec /usr/bin/Xtigervnc "${VNC_DISPLAY}" \
+  -geometry "${VNC_GEOMETRY}" \
+  -depth "${VNC_DEPTH}" \
+  -localhost no \
+  -SecurityTypes VncAuth \
+  -PasswordFile "${HOME}/.vnc/passwd" \
+  -fg \
+  -desktop "BrickSyncDesktop" \
+  -xstartup "${XSTARTUP_PATH}" \
+  -Log "*:stderr:100"
