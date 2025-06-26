@@ -58,6 +58,9 @@ RUN apt-get update && \
 # Create directory for supervisor's log files
 RUN mkdir -p /var/log/supervisor
 
+# Create /tmp/.X11-unix directory with appropriate permissions for X server sockets
+RUN mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
+
 # Create appuser and its home directory
 ENV APP_USER_NAME=appuser
 ENV APP_USER_HOME=/home/${APP_USER_NAME}
