@@ -46,7 +46,7 @@ RUN apt-get update && \
     tigervnc-standalone-server \
     tigervnc-common \
     # Added to provide tigervncpasswd
-    tigervnc-tools \\
+    tigervnc-tools \
     # noVNC and websockify for web UI access
     novnc \
     websockify \
