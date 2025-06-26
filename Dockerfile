@@ -69,6 +69,7 @@ RUN mkdir -p /src \
 # Copy helper scripts
 COPY entrypoint.sh /src/entrypoint.sh
 COPY vncserver_start.sh /usr/local/bin/vncserver_start.sh
+# xstartup is used by vncserver_start.sh
 COPY xstartup /home/dockeruser/.vnc/xstartup
 # COPY supervisord.conf /etc/supervisor/supervisord.conf # Remains removed
 
