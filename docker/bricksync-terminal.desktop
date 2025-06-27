@@ -5,7 +5,7 @@ Type=Application
 Name=BrickSync
 Comment=Run Bricksync in a terminal
 Path=/app
-Exec=xfce4-terminal --hold -e "/app/bricksync"
+Exec=xfce4-terminal --fullscreen --hold --command="/app/bricksync"
 StartupNotify=false
 Terminal=false
 Hidden=false
