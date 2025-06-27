@@ -34,52 +34,121 @@ Happy building, and coding :)
 
 ## Running with Docker
 
-This project can be built and run as a Docker container.
+This project includes a `docker/Dockerfile` to build and run BrickSync as a Docker container with a graphical user interface (GUI) accessible via VNC and a web browser (noVNC).
 
 ### Automated Builds
 
-A GitHub Actions workflow is set up to automatically build the Docker image on every push or pull request to the `main` branch. This ensures that the Dockerfile is always up-to-date and the application compiles correctly within the Docker environment. You can see the status of these builds in the "Actions" tab of the GitHub repository.
+A GitHub Actions workflow is set up to automatically build the Docker image (`ghcr.io/chuckbucket/bricksync-docker:latest`) on every push or pull request to the `main` branch. This ensures that the Dockerfile is always up-to-date and the application compiles correctly within the Docker environment. You can see the status of these builds in the "Actions" tab of the GitHub repository.
 
-### Local Development and Usage
+### Building the Image Locally
 
-To build and run the Docker image locally:
+If you prefer to build the image yourself:
 
 1.  **Ensure Docker is installed** on your system.
 2.  **Clone the repository.**
-3.  **Navigate to the project directory** in your terminal.
+3.  **Navigate to the project directory** (the root of this repository) in your terminal.
 4.  **Build the image:**
     ```bash
-    docker build -t bricksync-app .
+    docker build -t bricksync-gui -f docker/Dockerfile .
     ```
-5.  **Run the application:**
-    The application uses a `bricksync.conf` file for configuration.
-    *   A default `bricksync.conf` is included in the image.
-    *   To use your own configuration, create a `bricksync.conf` file in your project directory (or elsewhere) and mount it into the container.
+    (You can replace `bricksync-gui` with your preferred image name).
 
-    Example command to run with a custom configuration file located in the current directory:
+### Running BrickSync (GUI Mode via VNC/noVNC)
+
+The Docker image runs BrickSync within an Xfce desktop environment, accessible via VNC (port `5901` inside the container) and noVNC (port `6901` inside the container for web browser access).
+
+**Example `docker run` command:**
+
+```bash
+docker run \
+  -d \
+  --name='Bricksync' \
+  --net='bridge' \
+  --pids-limit 2048 \
+  -e TZ="America/Denver" \
+  -e HOST_OS="Unraid" \
+  -e HOST_HOSTNAME="MCP" \
+  -e HOST_CONTAINERNAME="Bricksync" \
+  -e 'BRICKSYNC_BRICKLINK_CONSUMERKEY'='YOUR_BL_CONSUMER_KEY' \
+  -e 'BRICKSYNC_BRICKLINK_CONSUMERSECRET'='YOUR_BL_CONSUMER_SECRET' \
+  -e 'BRICKSYNC_BRICKLINK_TOKEN'='YOUR_BL_TOKEN' \
+  -e 'BRICKSYNC_BRICKLINK_TOKENSECRET'='YOUR_BL_TOKEN_SECRET' \
+  -e 'BRICKSYNC_BRICKOWL_KEY'='YOUR_BRICKOWL_API_KEY' \
+  -e 'VNC_RESOLUTION'='1280x700' \
+  -p '4459:6901/tcp' \
+  -v '/path/on/host/bricksync_config':'/mnt/config':'rw' \
+  -v '/path/on/host/bricksync_data':'/app/data':'rw' \
+  'ghcr.io/chuckbucket/bricksync-docker:latest'
+```
+
+**Explanation of `docker run` options:**
+
+*   `-d`: Run the container in detached mode (in the background).
+*   `--name='Bricksync'`: Assign a name to your container for easier management.
+*   `--net='bridge'`: Use the default bridge network.
+*   `--pids-limit 2048`: Set a limit on the number of processes the container can run.
+*   `-e TZ="America/Denver"`: Set the timezone for the container. Replace with your local timezone.
+*   `-e HOST_OS="Unraid"`, `-e HOST_HOSTNAME="MCP"`, `-e HOST_CONTAINERNAME="Bricksync"`: Optional environment variables for host information, potentially used by local scripts or for identification.
+*   `-e 'BRICKSYNC_BRICKLINK_CONSUMERKEY'='YOUR_BL_CONSUMER_KEY'`: Your BrickLink Consumer Key. **Replace placeholder.**
+*   `-e 'BRICKSYNC_BRICKLINK_CONSUMERSECRET'='YOUR_BL_CONSUMER_SECRET'`: Your BrickLink Consumer Secret. **Replace placeholder.**
+*   `-e 'BRICKSYNC_BRICKLINK_TOKEN'='YOUR_BL_TOKEN'`: Your BrickLink Token. **Replace placeholder.**
+*   `-e 'BRICKSYNC_BRICKLINK_TOKENSECRET'='YOUR_BL_TOKEN_SECRET'`: Your BrickLink Token Secret. **Replace placeholder.**
+*   `-e 'BRICKSYNC_BRICKOWL_KEY'='YOUR_BRICKOWL_API_KEY'`: Your BrickOwl API Key. **Replace placeholder.**
+    *   *Note on API Keys:* Providing API keys via environment variables is recommended for Docker deployments. These will be written into the `bricksync.conf.txt` file inside the container at startup.
+*   `-e 'VNC_RESOLUTION'='1280x700'`: Set the screen resolution for the VNC desktop (e.g., `1280x720`, `1920x1080`).
+*   `-p '4459:6901/tcp'`: Map port `4459` on your host to port `6901` (noVNC web access) in the container. You can then access BrickSync via a web browser at `http://<your_docker_host_ip>:4459`.
+    *   If you also want direct VNC client access, you can add another port mapping like `-p '5901:5901/tcp'` and connect with a VNC viewer to `<your_docker_host_ip>:5901`.
+*   `-v '/path/on/host/bricksync_config':'/mnt/config':'rw'`: Mount a directory from your host (e.g., `/mnt/user/appdata/BrickSync/config`) to `/mnt/config` inside the container.
+    *   Place your custom `bricksync.conf` file in this host directory. If found, it will be used by the application. This is the recommended way to manage your base configuration.
+*   `-v '/path/on/host/bricksync_data':'/app/data':'rw'`: Mount a directory from your host (e.g., `/mnt/user/appdata/BrickSync/data`) to `/app/data` inside the container.
+    *   This directory will store persistent application data, such as the price guide cache (`pgcache`) and the effective `bricksync.conf.txt` used by the application. This ensures your data and settings (including API keys if not overridden by ENV vars) persist across container restarts.
+*   `'ghcr.io/chuckbucket/bricksync-docker:latest'`: The Docker image to use. Replace with `bricksync-gui` (or your custom name) if you built it locally.
+
+**Accessing BrickSync:**
+
+*   **Via Web Browser (noVNC):** Open `http://<your_docker_host_ip>:<host_port_for_6901>` (e.g., `http://localhost:4459` if running Docker locally and used the example).
+*   **Via VNC Client:** Connect to `<your_docker_host_ip>:<host_port_for_5901>` (e.g., `localhost:5901` if you mapped port 5901). No password is set by default for VNC access.
+
+### Configuration (`bricksync.conf.txt`)
+
+BrickSync uses a configuration file named `bricksync.conf.txt` (copied from `bricksync.conf.txt` in the repository root if a user-provided one isn't found).
+
+**Configuration Methods:**
+
+1.  **Environment Variables (Recommended for API Keys):** As shown in the `docker run` example, you can set API keys and other parameters using `-e` flags. These will override values in the `bricksync.conf.txt` file. Refer to `docker/entrypoint.sh` for all supported `BRICKSYNC_*` environment variables.
+2.  **Mounted Configuration File (Recommended for Base Settings):**
+    *   Create a directory on your host (e.g., `/my/bricksync/config`).
+    *   Place your customized `bricksync.conf` file (you can copy `bricksync.conf.txt` from the repo as a template) into this directory.
+    *   Mount this directory to `/mnt/config` in the container (e.g., `-v /my/bricksync/config:/mnt/config:rw`). The `entrypoint.sh` script will copy this file to `/app/data/bricksync.conf.txt` for the application to use.
+3.  **Default Configuration:** If no environment variables are set and no configuration file is mounted to `/mnt/config`, a default `bricksync.conf.txt` (from the image) will be used. **This default file will not have your API keys and is not suitable for production use.**
+
+**It is strongly recommended to manage your API keys using environment variables and other persistent settings via a mounted configuration file.**
+
+The effective configuration file used by the application at runtime is located at `/app/data/bricksync.conf.txt` within the container.
+
+### Command-Line Interface (CLI) Usage (Alternative)
+
+While the primary Dockerfile (`docker/Dockerfile`) builds a GUI application, BrickSync can also be run as a command-line tool. The information below pertains to such a use case, potentially with a different, simpler Dockerfile focused on CLI operation.
+
+If you were to run BrickSync in a CLI-only Docker container (assuming such an image `bricksync-cli-app` exists):
+
+1.  **Run with a custom configuration file:**
     ```bash
-    docker run --rm -it -v "$(pwd)/bricksync.conf:/app/bricksync.conf" bricksync-app
-    ```
-    If you want to use the default configuration baked into the image (not recommended for real use as you'll want to set your API keys):
-    ```bash
-    docker run --rm -it bricksync-app
-    ```
-    The application also creates a `data/pgcache` directory for its price guide cache. To persist this data across container runs, you can mount a local directory to `/app/data`:
-    ```bash
+    # Assuming bricksync.conf is in your current directory
     docker run --rm -it \
       -v "$(pwd)/bricksync.conf:/app/bricksync.conf" \
       -v "$(pwd)/my_bricksync_data:/app/data" \
-      bricksync-app
+      bricksync-cli-app
     ```
-    (Make sure to create `my_bricksync_data` directory locally first if you use this command).
+    *(Ensure `my_bricksync_data` directory exists locally.)*
 
-    You can pass additional command-line arguments to `bricksync` after the image name:
+2.  **Use default configuration (not for production):**
     ```bash
-    docker run --rm -it bricksync-app --help
+    docker run --rm -it bricksync-cli-app
     ```
 
-### Configuration (`bricksync.conf`)
-
-The `bricksync.conf` file contains various settings for the application, including API keys for BrickLink and BrickOwl. The default configuration file (`bricksync.conf.txt` in the repository) is copied into the image as `/app/bricksync.conf`.
-
-**It is strongly recommended to use a custom `bricksync.conf` file with your actual API keys and settings.** You can do this by creating your own `bricksync.conf` and mounting it as shown in the "Run the application" examples above. Refer to `bricksync.conf.txt` for all available options.
+3.  **Pass command-line arguments:**
+    ```bash
+    docker run --rm -it bricksync-cli-app --help
+    ```
+Refer to `bricksync.conf.txt` for all available configuration options if preparing a file for CLI use.
