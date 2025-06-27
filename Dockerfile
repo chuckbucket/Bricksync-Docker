@@ -123,7 +123,7 @@ USER dockeruser
 RUN echo  "debian version:  $(cat /etc/debian_version) \n" \
           "user:            $(whoami) \n"
 
-WORKDIR /app # Set WORKDIR to /app, which is now owned by dockeruser
+WORKDIR /app
 
 #Expose port 5901 to view display using VNC Viewer
 EXPOSE 5901 6901
