@@ -33,10 +33,10 @@ FROM debian:11.1-slim
 ENV DISPLAY=:1 \
     VNC_PORT=5901 \
     NO_VNC_PORT=6901 \
-    VNC_COL_DEPTH=32 \
-    VNC_RESOLUTION=1920x1080
+    VNC_COL_DEPTH=32
 
 # No interactive frontend during docker build
+# VNC_RESOLUTION is now set at runtime, with a default in entrypoint.sh
 ENV DEBIAN_FRONTEND=noninteractive
 
 
@@ -45,7 +45,7 @@ RUN apt-get update && \
     xvfb xauth dbus-x11 xfce4 xfce4-terminal \
     wget sudo curl gpg git bzip2 vim procps python x11-xserver-utils \
     nano mousepad \
-    libnss3 libnspr4 libasound2 libgbm1 ca-certificates fonts-liberation xdg-utils \
+    libnss3 libnspr4 libgbm1 ca-certificates fonts-liberation xdg-utils \
     tigervnc-standalone-server tigervnc-common firefox-esr; \
     curl http://ftp.us.debian.org/debian/pool/main/liba/libappindicator/libappindicator3-1_0.4.92-7_amd64.deb --output /opt/libappindicator3-1_0.4.92-7_amd64.deb && \
     curl http://ftp.us.debian.org/debian/pool/main/libi/libindicator/libindicator3-7_0.5.0-4_amd64.deb --output /opt/libindicator3-7_0.5.0-4_amd64.deb && \
