@@ -33,10 +33,10 @@ FROM debian:11.1-slim
 ENV DISPLAY=:1 \
     VNC_PORT=5901 \
     NO_VNC_PORT=6901 \
-    VNC_COL_DEPTH=32 \
-    VNC_RESOLUTION=1920x1080
+    VNC_COL_DEPTH=32
 
 # No interactive frontend during docker build
+# VNC_RESOLUTION is now set at runtime, with a default in entrypoint.sh
 ENV DEBIAN_FRONTEND=noninteractive
 
 
@@ -44,18 +44,16 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y \
     xvfb xauth dbus-x11 xfce4 xfce4-terminal \
     wget sudo curl gpg git bzip2 vim procps python x11-xserver-utils \
-    nano \
-    libnss3 libnspr4 libasound2 libgbm1 ca-certificates fonts-liberation xdg-utils \
+    nano mousepad \
+    libnss3 libnspr4 libgbm1 ca-certificates fonts-liberation xdg-utils \
     tigervnc-standalone-server tigervnc-common firefox-esr; \
     curl http://ftp.us.debian.org/debian/pool/main/liba/libappindicator/libappindicator3-1_0.4.92-7_amd64.deb --output /opt/libappindicator3-1_0.4.92-7_amd64.deb && \
     curl http://ftp.us.debian.org/debian/pool/main/libi/libindicator/libindicator3-7_0.5.0-4_amd64.deb --output /opt/libindicator3-7_0.5.0-4_amd64.deb && \
     apt-get install -y /opt/libappindicator3-1_0.4.92-7_amd64.deb /opt/libindicator3-7_0.5.0-4_amd64.deb && \
-    \
     echo "Installing noVNC and websockify..." && \
     git clone --branch v1.2.0 --single-branch https://github.com/novnc/noVNC.git /opt/noVNC && \
     git clone --branch v0.9.0 --single-branch https://github.com/novnc/websockify.git /opt/noVNC/utils/websockify && \
     ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html && \
-    \
     rm -vf /opt/lib*.deb && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -72,7 +70,7 @@ ENV QT_X11_NO_MITSHM=1 \
 RUN mkdir /src # Create /src directory
 
 # Copy entrypoint script and make it executable (as root)
-COPY entrypoint.sh /src/entrypoint.sh
+COPY docker/entrypoint.sh /src/entrypoint.sh
 RUN chmod +x /src/entrypoint.sh
 
 # give every user read write access to the "/root" folder where the binary is cached (from user example)
@@ -95,7 +93,7 @@ RUN mkdir -p /home/dockeruser/.config/autostart/ && \
 
 # Copy the .desktop file for bricksync in terminal
 # Ensure 'bricksync-terminal.desktop' exists in your Docker build context (same dir as Dockerfile)
-COPY bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
+COPY docker/bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-terminal.desktop && \
     chmod 644 /home/dockeruser/.config/autostart/bricksync-terminal.desktop
 
@@ -122,9 +120,14 @@ RUN mkdir -p /home/dockeruser/Desktop && \
 
 # Copy the GitHub link .desktop file to the user's Desktop
 # Make sure 'BricksyncGitHub.desktop' is in your build context (same dir as Dockerfile)
-COPY BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
+COPY docker/BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BricksyncGitHub.desktop && \
     chmod 644 /home/dockeruser/Desktop/BricksyncGitHub.desktop
+
+# Copy the BrickSync terminal shortcut to the user's Desktop
+COPY docker/bricksync-terminal.desktop /home/dockeruser/Desktop/BrickSync.desktop
+RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BrickSync.desktop && \
+    chmod 644 /home/dockeruser/Desktop/BrickSync.desktop
 
 # Switch back to dockeruser if not already the active user for subsequent RUN commands or final USER
 USER dockeruser

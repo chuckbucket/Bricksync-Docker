@@ -160,7 +160,7 @@ VNC_PORT="${VNC_PORT:-5901}"
 NO_VNC_PORT="${NO_VNC_PORT:-6901}"
 DISPLAY="${DISPLAY:-:1}"
 VNC_COL_DEPTH="${VNC_COL_DEPTH:-32}"
-VNC_RESOLUTION="${VNC_RESOLUTION:-1920x1080}"
+VNC_RESOLUTION="${VNC_RESOLUTION:-1600x900}"
 
 echo "INFO: Launching noVNC server..."
 /opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT &
