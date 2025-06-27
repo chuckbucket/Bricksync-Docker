@@ -34,14 +34,19 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=schedule
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=sha,prefix=,suffix=,format=short
+          # type=schedule # Disabled for now, can be re-enabled if needed
+          # type=ref,event=branch  # Replaced by more specific logic below
+          # type=ref,event=pr # Disabled for now, can be re-enabled if needed for PRs
+          # type=semver,pattern={{version}} # Disabled for now
+          # type=semver,pattern={{major}}.{{minor}} # Disabled for now
+          # type=semver,pattern={{major}} # Disabled for now
+          type=sha,prefix=,suffix=,format=short # Keep short SHA for all builds
+
+          # Tag as 'latest' for the default branch
           type=raw,value=latest,enable={{is_default_branch}}
+
+          # Tag as 'beta' for non-default branches
+          type=raw,value=beta,enable=${{ !is_default_branch }}
 
     - name: Login to GitHub Container Registry
       if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
