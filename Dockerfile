@@ -115,7 +115,20 @@ RUN chown -R dockeruser:dockeruser /home/dockeruser && \
 # Switch to dockeruser for subsequent commands and runtime
 USER dockeruser
 
-# === Modifications End Here ===
+USER root
+RUN mkdir -p /home/dockeruser/Desktop && \
+    chown dockeruser:dockeruser /home/dockeruser/Desktop && \
+    chmod 755 /home/dockeruser/Desktop
+
+# Copy the GitHub link .desktop file to the user's Desktop
+# Make sure 'BricksyncGitHub.desktop' is in your build context (same dir as Dockerfile)
+COPY BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
+RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BricksyncGitHub.desktop && \
+    chmod 644 /home/dockeruser/Desktop/BricksyncGitHub.desktop
+
+# Switch back to dockeruser if not already the active user for subsequent RUN commands or final USER
+USER dockeruser
+
 
 # COPY assets/config/ /home/dockeruser/.config # User-provided assets folder, comment out as it's not in the repo
 
