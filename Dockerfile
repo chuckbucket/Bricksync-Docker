@@ -82,47 +82,48 @@ RUN chmod 777 /root
 RUN groupadd -g 61000 dockeruser; \
     useradd -g 61000 -l -m -s /bin/bash -u 61000 dockeruser
 
-# Create autostart directory for dockeruser
+# Switch to root to create system-level directories and set up autostart
 USER root
-RUN mkdir -p /home/dockeruser/.config/autostart/ && chown dockeruser:dockeruser /home/dockeruser/.config/autostart/
-
-# Create the .desktop file for bricksync in terminal
-COPY bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
-RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-terminal.desktop && chmod 644 /home/dockeruser/.config/autostart/bricksync-terminal.desktop
-# Switch back to dockeruser if other commands follow for this user
-USER dockeruser 
-
-# COPY assets/config/ /home/dockeruser/.config # User-provided assets folder, comment out as it's not in the repo
 
 # Create /app directory for bricksync and related files
+# This needs to be done as root if it's directly under /
 RUN mkdir -p /app
+
+# Create autostart directory for dockeruser and set its ownership immediately
+RUN mkdir -p /home/dockeruser/.config/autostart/ && \
+    chown dockeruser:dockeruser /home/dockeruser/.config/autostart/
+
+# Copy the .desktop file for bricksync in terminal
+# Ensure 'bricksync-terminal.desktop' exists in your Docker build context (same dir as Dockerfile)
+COPY bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
+RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-terminal.desktop && \
+    chmod 644 /home/dockeruser/.config/autostart/bricksync-terminal.desktop
 
 # Copy compiled application and default config from builder stage
 COPY --from=builder /app/bricksync /app/bricksync
-# Default/template config for bricksync
 COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 
-RUN chown -R dockeruser:dockeruser /home/dockeruser /app && \
+# Set ownership for /app and /home/dockeruser, and sudo permissions
+# Note: /home/dockeruser is already created by useradd -m, 
+# chown here ensures all contents including .config/autostart are correct if not already.
+RUN chown -R dockeruser:dockeruser /home/dockeruser && \
+    chown -R dockeruser:dockeruser /app && \
     chmod -R 777 /home/dockeruser && \
-    # chmod u+rwx /app && # Not strictly needed as dockeruser owns /app now
     adduser dockeruser sudo && \
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Create autostart directory for dockeruser
-USER root
-RUN mkdir -p /home/dockeruser/.config/autostart/ && chown dockeruser:dockeruser /home/dockeruser/.config/autostart/
-
-# Create the .desktop file for bricksync in terminal
-COPY bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
-RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-terminal.desktop && chmod 644 /home/dockeruser/.config/autostart/bricksync-terminal.desktop
-# Switch back to dockeruser if other commands follow for this user
-
+# Switch to dockeruser for subsequent commands and runtime
 USER dockeruser
+
+# === Modifications End Here ===
+
+# COPY assets/config/ /home/dockeruser/.config # User-provided assets folder, comment out as it's not in the repo
+
 # versions of local tools
 RUN echo  "debian version:  $(cat /etc/debian_version) \n" \
           "user:            $(whoami) \n"
 
-WORKDIR /app # Set WORKDIR to /app, which is owned by dockeruser
+WORKDIR /app # Set WORKDIR to /app, which is now owned by dockeruser
 
 #Expose port 5901 to view display using VNC Viewer
 EXPOSE 5901 6901
