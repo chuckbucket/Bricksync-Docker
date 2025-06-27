@@ -46,7 +46,8 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
           # Tag as 'beta' for non-default branches
-          type=raw,value=beta,enable=${{ !is_default_branch }}
+          # Corrected logic: enable if the current ref is NOT the default branch.
+          type=raw,value=beta,enable=${{ github.ref_name != github.event.repository.default_branch }}
 
     - name: Login to GitHub Container Registry
       if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
