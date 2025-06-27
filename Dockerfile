@@ -82,6 +82,16 @@ RUN chmod 777 /root
 RUN groupadd -g 61000 dockeruser; \
     useradd -g 61000 -l -m -s /bin/bash -u 61000 dockeruser
 
+# Create autostart directory for dockeruser
+USER root
+RUN mkdir -p /home/dockeruser/.config/autostart/ && chown dockeruser:dockeruser /home/dockeruser/.config/autostart/
+
+# Create the .desktop file for bricksync in terminal
+COPY bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
+RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-terminal.desktop && chmod 644 /home/dockeruser/.config/autostart/bricksync-terminal.desktop
+# Switch back to dockeruser if other commands follow for this user
+USER dockeruser 
+
 # COPY assets/config/ /home/dockeruser/.config # User-provided assets folder, comment out as it's not in the repo
 
 # Create /app directory for bricksync and related files
