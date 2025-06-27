@@ -72,7 +72,7 @@ ENV QT_X11_NO_MITSHM=1 \
 RUN mkdir /src # Create /src directory
 
 # Copy entrypoint script and make it executable (as root)
-COPY entrypoint.sh /src/entrypoint.sh
+COPY docker/entrypoint.sh /src/entrypoint.sh
 RUN chmod +x /src/entrypoint.sh
 
 # give every user read write access to the "/root" folder where the binary is cached (from user example)
@@ -95,7 +95,7 @@ RUN mkdir -p /home/dockeruser/.config/autostart/ && \
 
 # Copy the .desktop file for bricksync in terminal
 # Ensure 'bricksync-terminal.desktop' exists in your Docker build context (same dir as Dockerfile)
-COPY bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
+COPY docker/bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-terminal.desktop && \
     chmod 644 /home/dockeruser/.config/autostart/bricksync-terminal.desktop
 
@@ -122,7 +122,7 @@ RUN mkdir -p /home/dockeruser/Desktop && \
 
 # Copy the GitHub link .desktop file to the user's Desktop
 # Make sure 'BricksyncGitHub.desktop' is in your build context (same dir as Dockerfile)
-COPY BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
+COPY docker/BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BricksyncGitHub.desktop && \
     chmod 644 /home/dockeruser/Desktop/BricksyncGitHub.desktop
 
