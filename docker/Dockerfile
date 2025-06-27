@@ -44,7 +44,7 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y \
     xvfb xauth dbus-x11 xfce4 xfce4-terminal \
     wget sudo curl gpg git bzip2 vim procps python x11-xserver-utils \
-    nano \
+    nano mousepad \
     libnss3 libnspr4 libasound2 libgbm1 ca-certificates fonts-liberation xdg-utils \
     tigervnc-standalone-server tigervnc-common firefox-esr; \
     curl http://ftp.us.debian.org/debian/pool/main/liba/libappindicator/libappindicator3-1_0.4.92-7_amd64.deb --output /opt/libappindicator3-1_0.4.92-7_amd64.deb && \
@@ -125,6 +125,11 @@ RUN mkdir -p /home/dockeruser/Desktop && \
 COPY docker/BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BricksyncGitHub.desktop && \
     chmod 644 /home/dockeruser/Desktop/BricksyncGitHub.desktop
+
+# Copy the BrickSync terminal shortcut to the user's Desktop
+COPY docker/bricksync-terminal.desktop /home/dockeruser/Desktop/BrickSync.desktop
+RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BrickSync.desktop && \
+    chmod 644 /home/dockeruser/Desktop/BrickSync.desktop
 
 # Switch back to dockeruser if not already the active user for subsequent RUN commands or final USER
 USER dockeruser
