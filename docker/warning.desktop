@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Do not save files to desktop. They will be lost
+Comment=Desktop items will be lost on container restart.
+Exec=cmd
+Icon=dialog-warning
+Path=
+Terminal=false
+StartupNotify=false

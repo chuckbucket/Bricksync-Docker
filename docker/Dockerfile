@@ -42,9 +42,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
-    xvfb xauth dbus-x11 xfce4 xfce4-terminal \
+    xvfb xauth dbus-x11 \
+    openbox lxterminal tint2 obconf lxappearance feh mousepad pcmanfm wmctrl \
     wget sudo curl git procps python x11-xserver-utils \
-    nano mousepad \
+    nano \
     libnss3 libnspr4 libgbm1 ca-certificates fonts-liberation xdg-utils \
     tigervnc-standalone-server tigervnc-common firefox-esr && \
     curl http://ftp.us.debian.org/debian/pool/main/liba/libappindicator/libappindicator3-1_0.4.92-7_amd64.deb --output /opt/libappindicator3-1_0.4.92-7_amd64.deb && \
@@ -59,6 +60,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Copy icons
+COPY docker/icons/ /opt/noVNC/app/images/icons/
 
 ENV TERM=xterm
 # The noVNC installation commands have been moved into the main RUN block that installs packages.
@@ -76,7 +79,9 @@ RUN chmod +x /src/entrypoint.sh
 
 # Copy redirect.html and set up the symlink for noVNC autoconnect
 COPY docker/redirect.html /opt/noVNC/redirect.html
-RUN ln -sf /opt/noVNC/redirect.html /opt/noVNC/index.html
+RUN ln -sf /opt/noVNC/redirect.html /opt/noVNC/index.html && \
+    # Modify vnc.html to set a static title "BrickSync"
+    sed -i '/<\/body>/i <script>document.title = "BrickSync";<\/script>' /opt/noVNC/vnc.html
 
 # /root directory permissions should be default, not 777.
 # RUN ls -la /root
@@ -104,6 +109,7 @@ RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-ter
 
 # Copy compiled application and default config from builder stage
 COPY --from=builder /app/bricksync /app/bricksync
+RUN chmod +x /app/bricksync
 COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 
 # Set ownership for /app and /home/dockeruser, and sudo permissions
@@ -126,6 +132,12 @@ RUN mkdir -p /home/dockeruser/Desktop && \
     chown dockeruser:dockeruser /home/dockeruser/Desktop && \
     chmod 755 /home/dockeruser/Desktop
 
+# Copy the BrickSync warning shortcut to the user's Desktop
+COPY docker/warning.desktop /home/dockeruser/Desktop/warning.desktop
+RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/warning.desktop && \
+    chmod 644 /home/dockeruser/Desktop/warning.desktop
+
+
 # Copy the GitHub link .desktop file to the user's Desktop
 COPY docker/BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BricksyncGitHub.desktop && \
@@ -136,25 +148,26 @@ COPY docker/bricksync-terminal.desktop /home/dockeruser/Desktop/BrickSync.deskto
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BrickSync.desktop && \
     chmod 644 /home/dockeruser/Desktop/BrickSync.desktop
 
-# Copy the log files shortcut to the user's Desktop
+# Copy the BrickSync logfiles-link shortcut to the user's Desktop
 COPY docker/logfiles-link.desktop /home/dockeruser/Desktop/logfiles-link.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/logfiles-link.desktop && \
     chmod 644 /home/dockeruser/Desktop/logfiles-link.desktop
 
-# Copy bricksync icon
-RUN mkdir -p /home/dockeruser/icons
-COPY docker/bricksync.png /home/dockeruser/icons/bricksync.png
-RUN chown dockeruser:dockeruser /home/dockeruser/icons && \
-    chmod 755 /home/dockeruser/icons
 
 # Ensure .vnc directory and xstartup have correct permissions if they exist or are created by vncserver later.
 # For now, rely on vncserver from entrypoint.sh to initialize as needed.
-# If xstartup were part of the image:
-# RUN mkdir -p /home/dockeruser/.vnc && \
-#     chown -R dockeruser:dockeruser /home/dockeruser/.vnc && \
-#     chmod 700 /home/dockeruser/.vnc && \
-#     echo -e '#!/bin/sh\nautocutsel -fork\nxfce4-session &' > /home/dockeruser/.vnc/xstartup && \
-#     chmod 755 /home/dockeruser/.vnc/xstartup
+# Create .vnc directory and xstartup for Openbox
+RUN mkdir -p /home/dockeruser/.vnc && \
+    echo -e '#!/bin/sh\n\n# Start VNC specific utilities\nautocutsel -fork\n\n# Start OpenBox session\nexec /usr/bin/openbox-session' > /home/dockeruser/.vnc/xstartup && \
+    chown -R dockeruser:dockeruser /home/dockeruser/.vnc && \
+    chmod 700 /home/dockeruser/.vnc && \
+    chmod 755 /home/dockeruser/.vnc/xstartup
+
+# Create Openbox autostart directory and script
+RUN mkdir -p /home/dockeruser/.config/openbox && \
+    echo -e '#!/bin/sh\n\n# Set default web browser\nxdg-settings set default-web-browser firefox-esr.desktop &\n\n# Set a background color\nfeh --bg-color "#202020" &\n\n# Start the panel\ntint2 &\n\n# Enable PCManFM desktop management for icons\npcmanfm --desktop & \n\n# Autostart BrickSync in a terminal, disabling AT-SPI bridge, setting working directory and title\nNO_AT_BRIDGE=1 lxterminal --title="BrickSync" --working-directory=/app -e "/app/bricksync" &\n\n# Maximize the BrickSync terminal shortly after launch\n(sleep 2 && wmctrl -r "BrickSync" -b add,maximized_vert,maximized_horz) &' > /home/dockeruser/.config/openbox/autostart && \
+    chown -R dockeruser:dockeruser /home/dockeruser/.config && \
+    chmod +x /home/dockeruser/.config/openbox/autostart
 
 # Final switch to dockeruser for runtime
 USER dockeruser

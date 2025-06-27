@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
-Type=Link
+Type=Application
 Name=Log Files
 Comment=View log file dir.
 Icon=folder-documents
-URL=/app/data/logs
+Exec=pcmanfm /app/data/logs

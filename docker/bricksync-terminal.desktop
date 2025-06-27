@@ -2,10 +2,10 @@
 Encoding=UTF-8
 Version=1.0
 Type=Application
-Name=BrickSync
+Name=Run BrickSync
 Comment=Run Bricksync in a terminal
 Path=/app
-Exec=xfce4-terminal --hold -e "/app/bricksync"
+Exec=lxterminal -e "/app/bricksync"
 StartupNotify=false
 Terminal=false
 Hidden=false
