@@ -43,10 +43,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
     xvfb xauth dbus-x11 xfce4 xfce4-terminal \
-    wget sudo curl gpg git bzip2 vim procps python x11-xserver-utils \
+    wget sudo curl git procps python x11-xserver-utils \
     nano mousepad \
     libnss3 libnspr4 libgbm1 ca-certificates fonts-liberation xdg-utils \
-    tigervnc-standalone-server tigervnc-common firefox-esr; \
+    tigervnc-standalone-server tigervnc-common firefox-esr && \
     curl http://ftp.us.debian.org/debian/pool/main/liba/libappindicator/libappindicator3-1_0.4.92-7_amd64.deb --output /opt/libappindicator3-1_0.4.92-7_amd64.deb && \
     curl http://ftp.us.debian.org/debian/pool/main/libi/libindicator/libindicator3-7_0.5.0-4_amd64.deb --output /opt/libindicator3-7_0.5.0-4_amd64.deb && \
     apt-get install -y /opt/libappindicator3-1_0.4.92-7_amd64.deb /opt/libindicator3-7_0.5.0-4_amd64.deb && \
@@ -55,6 +55,7 @@ RUN apt-get update && \
     git clone --branch v0.9.0 --single-branch https://github.com/novnc/websockify.git /opt/noVNC/utils/websockify && \
     ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html && \
     rm -vf /opt/lib*.deb && \
+    apt-get purge -y --auto-remove git && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -73,11 +74,11 @@ RUN mkdir /src # Create /src directory
 COPY docker/entrypoint.sh /src/entrypoint.sh
 RUN chmod +x /src/entrypoint.sh
 
-# give every user read write access to the "/root" folder where the binary is cached (from user example)
-RUN ls -la /root
-RUN chmod 777 /root
+# /root directory permissions should be default, not 777.
+# RUN ls -la /root
+# RUN chmod 777 /root
 
-RUN groupadd -g 61000 dockeruser; \
+RUN groupadd -g 61000 dockeruser && \
     useradd -g 61000 -l -m -s /bin/bash -u 61000 dockeruser
 
 # Switch to root to create system-level directories and set up autostart
@@ -104,22 +105,24 @@ COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 # Set ownership for /app and /home/dockeruser, and sudo permissions
 # Note: /home/dockeruser is already created by useradd -m, 
 # chown here ensures all contents including .config/autostart are correct if not already.
+# /home/dockeruser permissions:
+# - Home directory itself: 750 or 755 (dockeruser rwx, group r-x, others --- or r-x)
+# - .config and subdirectories: 755 for dirs, 644 for files generally.
+# - .vnc/xstartup needs to be executable. vncserver usually handles this.
+# - .desktop files should be 644 or 755 if they need to be launched directly by user click in all DEs.
 RUN chown -R dockeruser:dockeruser /home/dockeruser && \
+    chmod 750 /home/dockeruser && \
     chown -R dockeruser:dockeruser /app && \
-    chmod -R 777 /home/dockeruser && \
     adduser dockeruser sudo && \
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Switch to dockeruser for subsequent commands and runtime
-USER dockeruser
-
+# Desktop and .desktop file setup
 USER root
 RUN mkdir -p /home/dockeruser/Desktop && \
     chown dockeruser:dockeruser /home/dockeruser/Desktop && \
     chmod 755 /home/dockeruser/Desktop
 
 # Copy the GitHub link .desktop file to the user's Desktop
-# Make sure 'BricksyncGitHub.desktop' is in your build context (same dir as Dockerfile)
 COPY docker/BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BricksyncGitHub.desktop && \
     chmod 644 /home/dockeruser/Desktop/BricksyncGitHub.desktop
@@ -129,7 +132,16 @@ COPY docker/bricksync-terminal.desktop /home/dockeruser/Desktop/BrickSync.deskto
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BrickSync.desktop && \
     chmod 644 /home/dockeruser/Desktop/BrickSync.desktop
 
-# Switch back to dockeruser if not already the active user for subsequent RUN commands or final USER
+# Ensure .vnc directory and xstartup have correct permissions if they exist or are created by vncserver later.
+# For now, rely on vncserver from entrypoint.sh to initialize as needed.
+# If xstartup were part of the image:
+# RUN mkdir -p /home/dockeruser/.vnc && \
+#     chown -R dockeruser:dockeruser /home/dockeruser/.vnc && \
+#     chmod 700 /home/dockeruser/.vnc && \
+#     echo -e '#!/bin/sh\nautocutsel -fork\nxfce4-session &' > /home/dockeruser/.vnc/xstartup && \
+#     chmod 755 /home/dockeruser/.vnc/xstartup
+
+# Final switch to dockeruser for runtime
 USER dockeruser
 
 
