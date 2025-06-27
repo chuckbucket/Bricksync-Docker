@@ -108,6 +108,15 @@ RUN chown -R dockeruser:dockeruser /home/dockeruser /app && \
     adduser dockeruser sudo && \
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+# Create autostart directory for dockeruser
+USER root
+RUN mkdir -p /home/dockeruser/.config/autostart/ && chown dockeruser:dockeruser /home/dockeruser/.config/autostart/
+
+# Create the .desktop file for bricksync in terminal
+COPY bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
+RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-terminal.desktop && chmod 644 /home/dockeruser/.config/autostart/bricksync-terminal.desktop
+# Switch back to dockeruser if other commands follow for this user
+
 USER dockeruser
 # versions of local tools
 RUN echo  "debian version:  $(cat /etc/debian_version) \n" \
