@@ -59,6 +59,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Copy icons
+COPY docker/icons/ /opt/noVNC/app/images/icons/
 
 ENV TERM=xterm
 # The noVNC installation commands have been moved into the main RUN block that installs packages.
