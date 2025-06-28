@@ -150,7 +150,8 @@ vncserver $DISPLAY -depth $VNC_COL_DEPTH -geometry $VNC_RESOLUTION \
 VNCSERVER_PID=$!
 
 echo "-----------------------------"
-echo "INFO: noVNC available at: http://$(hostname -i | awk '{print $1}'):${NO_VNC_PORT}/vnc.html"
+echo "INFO: noVNC available at: http://localhost:${NO_VNC_PORT}/vnc.html (replace 'localhost' with your Docker host IP if accessing remotely)"
+
 echo "-----------------------------"
 
 echo "INFO: VNC services started. Awaiting termination..."
