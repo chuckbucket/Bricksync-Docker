@@ -141,7 +141,7 @@ VNC_COL_DEPTH="${VNC_COL_DEPTH:-32}"
 VNC_RESOLUTION="${VNC_RESOLUTION:-1600x900}"
 
 echo "INFO: Starting noVNC server..."
-/opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT > /dev/null &
+/opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT −desktop BrickSync > /dev/null &
 NOVNC_PID=$!
 
 echo "INFO: Starting VNC server..."
