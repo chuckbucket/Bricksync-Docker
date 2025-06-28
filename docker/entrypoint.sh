@@ -141,13 +141,17 @@ VNC_COL_DEPTH="${VNC_COL_DEPTH:-32}"
 VNC_RESOLUTION="${VNC_RESOLUTION:-1600x900}"
 
 echo "INFO: Starting noVNC server..."
-/opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT &
+/opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT > /dev/null &
 NOVNC_PID=$!
 
 echo "INFO: Starting VNC server..."
 vncserver $DISPLAY -depth $VNC_COL_DEPTH -geometry $VNC_RESOLUTION \
   -SecurityTypes None -localhost no --I-KNOW-THIS-IS-INSECURE &
 VNCSERVER_PID=$!
+
+echo "-----------------------------"
+echo "INFO: noVNC available at: http://$(hostname -i | awk '{print $1}'):${NO_VNC_PORT}/vnc.html"
+echo "-----------------------------"
 
 echo "INFO: VNC services started. Awaiting termination..."
 wait $NOVNC_PID $VNCSERVER_PID
