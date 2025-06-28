@@ -11,6 +11,9 @@ EFFECTIVE_CONFIG_PATH="${DATA_DIR}/bricksync.conf.txt" # Effective config path
 USER_CONFIG_MOUNT_DIR="/mnt/config" # User mounts their bricksync.conf here
 USER_CONFIG_FILE_PATH="${USER_CONFIG_MOUNT_DIR}/bricksync.conf" # Path for user-mounted custom config
 
+echo "----- --  Starting Entrypoint  -- -----"
+echo "INFO: Setting up BrickSync settings files: ${DEFAULT_CONFIG_SOURCE}"
+
 # Function to update config
 update_config() {
     local key="$1"
