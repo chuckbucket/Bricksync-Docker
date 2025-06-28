@@ -76,7 +76,9 @@ RUN chmod +x /src/entrypoint.sh
 
 # Copy redirect.html and set up the symlink for noVNC autoconnect
 COPY docker/redirect.html /opt/noVNC/redirect.html
-RUN ln -sf /opt/noVNC/redirect.html /opt/noVNC/index.html
+RUN ln -sf /opt/noVNC/redirect.html /opt/noVNC/index.html && \
+    # Modify vnc.html to set a static title "BrickSync"
+    sed -i '/<\/body>/i <script>document.title = "BrickSync";<\/script>' /opt/noVNC/vnc.html
 
 # /root directory permissions should be default, not 777.
 # RUN ls -la /root
@@ -135,17 +137,6 @@ RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BricksyncGitHub.desktop
 COPY docker/bricksync-terminal.desktop /home/dockeruser/Desktop/BrickSync.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BrickSync.desktop && \
     chmod 644 /home/dockeruser/Desktop/BrickSync.desktop
-
-# Copy the log files shortcut to the user's Desktop
-COPY docker/logfiles-link.desktop /home/dockeruser/Desktop/logfiles-link.desktop
-RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/logfiles-link.desktop && \
-    chmod 644 /home/dockeruser/Desktop/logfiles-link.desktop
-
-# Copy bricksync icon
-RUN mkdir -p /home/dockeruser/icons
-COPY docker/bricksync.png /home/dockeruser/icons/bricksync.png
-RUN chown dockeruser:dockeruser /home/dockeruser/icons && \
-    chmod 755 /home/dockeruser/icons
 
 # Ensure .vnc directory and xstartup have correct permissions if they exist or are created by vncserver later.
 # For now, rely on vncserver from entrypoint.sh to initialize as needed.
