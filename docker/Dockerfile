@@ -130,6 +130,12 @@ RUN mkdir -p /home/dockeruser/Desktop && \
     chown dockeruser:dockeruser /home/dockeruser/Desktop && \
     chmod 755 /home/dockeruser/Desktop
 
+# Copy the BrickSync warning shortcut to the user's Desktop
+COPY docker/warning.desktop /home/dockeruser/Desktop/warning.desktop
+RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/warning.desktop && \
+    chmod 644 /home/dockeruser/Desktop/warning.desktop
+
+
 # Copy the GitHub link .desktop file to the user's Desktop
 COPY docker/BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BricksyncGitHub.desktop && \
@@ -139,6 +145,12 @@ RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BricksyncGitHub.desktop
 COPY docker/bricksync-terminal.desktop /home/dockeruser/Desktop/BrickSync.desktop
 RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/BrickSync.desktop && \
     chmod 644 /home/dockeruser/Desktop/BrickSync.desktop
+
+# Copy the BrickSync logfiles-link shortcut to the user's Desktop
+COPY docker/logfiles-link.desktop /home/dockeruser/Desktop/logfiles-link.desktop
+RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/logfiles-link.desktop && \
+    chmod 644 /home/dockeruser/Desktop/logfiles-link.desktop
+
 
 # Ensure .vnc directory and xstartup have correct permissions if they exist or are created by vncserver later.
 # For now, rely on vncserver from entrypoint.sh to initialize as needed.
