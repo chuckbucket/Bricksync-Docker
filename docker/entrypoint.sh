@@ -144,7 +144,7 @@ ctrl_c() {
     # However, vncserver and novnc are complex; they might daemonize or manage their own process groups.
     # A simple kill -TERM -$$ might not be enough to gracefully stop them if they are truly detached.
     # For now, focus on getting logs.
-
+    
     # Try to kill the specific PIDs if they are still running
     if [ -n "$NOVNC_PID" ] && ps -p $NOVNC_PID > /dev/null; then
         echo "INFO: [TRAP] Sending SIGTERM to noVNC PID $NOVNC_PID"
@@ -154,10 +154,10 @@ ctrl_c() {
         echo "INFO: [TRAP] Sending SIGTERM to VNC Server PID $VNCSERVER_PID"
         kill -TERM $VNCSERVER_PID
     fi
-
+    
     # Give them a moment to die
     sleep 0.5
-
+    
     echo "INFO: [TRAP] VNC server and noVNC shut down initiated."
     exit 0 # Exit from trap
 }
@@ -262,11 +262,28 @@ fi
 # Adding a small sleep to allow any final logs to flush.
 sleep 1
 
-echo "INFO: Final contents of $NOVNC_LOG:"
-cat "$NOVNC_LOG" || echo "INFO: Could not cat $NOVNC_LOG"
-echo "INFO: Final contents of $VNCSERVER_LOG:"
-cat "$VNCSERVER_LOG" || echo "INFO: Could not cat $VNCSERVER_LOG"
-echo "INFO: Final contents of $XSTARTUP_LOG:"
-cat "$XSTARTUP_LOG" || echo "INFO: Could not cat $XSTARTUP_LOG"
+# Disable exit on error for the log dumping and copying, to ensure we try everything
+set +e
 
-echo "INFO: Script finished. Container will now exit."
+LOG_COPY_DIR="/output_logs_internal_dont_touch"
+echo "INFO: Preparing to copy logs to $LOG_COPY_DIR for retrieval via volume mount."
+mkdir -p "$LOG_COPY_DIR"
+chown dockeruser:dockeruser "$LOG_COPY_DIR" 2>/dev/null || echo "WARN: Could not chown $LOG_COPY_DIR"
+
+echo "INFO: Final contents of $NOVNC_LOG:"
+cat "$NOVNC_LOG" || echo "INFO: Could not cat $NOVNC_LOG (normal if noVNC had no output or errors)."
+if [ -f "$NOVNC_LOG" ]; then cp "$NOVNC_LOG" "$LOG_COPY_DIR/"; fi
+
+echo "INFO: Final contents of $VNCSERVER_LOG:"
+cat "$VNCSERVER_LOG" || echo "INFO: Could not cat $VNCSERVER_LOG (CRITICAL if VNC server was expected to run)."
+if [ -f "$VNCSERVER_LOG" ]; then cp "$VNCSERVER_LOG" "$LOG_COPY_DIR/"; fi
+
+echo "INFO: Final contents of $XSTARTUP_LOG:"
+cat "$XSTARTUP_LOG" || echo "INFO: Could not cat $XSTARTUP_LOG (CRITICAL if VNC server started but xstartup failed)."
+if [ -f "$XSTARTUP_LOG" ]; then cp "$XSTARTUP_LOG" "$LOG_COPY_DIR/"; fi
+
+echo "INFO: Logs copied to $LOG_COPY_DIR within the container. Map this directory as a volume to access logs on the host."
+
+echo "INFO: Script pausing for 300 seconds..."
+sleep 300 # Keep container alive for manual inspection or if logs weren't mapped
+echo "INFO: Pause finished. Script finished. Container will now exit."
