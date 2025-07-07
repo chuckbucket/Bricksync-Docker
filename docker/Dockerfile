@@ -1,10 +1,13 @@
-# Stage 1: Builder for bricksync (modified to use Debian Bullseye)
-FROM buildpack-deps:bullseye-scm AS builder
+# Stage 1: Builder for bricksync (switched to Alpine)
+FROM alpine:3.19 AS builder
 
-# Install build dependencies for bricksync on Bullseye
-# gcc, make etc. are included in buildpack-deps
-# libssl-dev is removed as we will build OpenSSL from source
-RUN apt-get update && apt-get install -y wget make gcc perl
+# Install build dependencies for bricksync on Alpine
+RUN apk update && apk add --no-cache \
+    wget \
+    perl \
+    build-base \
+    linux-headers \
+    coreutils # For nproc
 
 WORKDIR /app
 
@@ -46,7 +49,6 @@ ENV DISPLAY=:1 \
 RUN apk update && \
     apk add --no-cache \
     bash \
-    gcompat \
     xvfb xauth dbus-x11 fluxbox xterm \
     wget curl git procps python3 xrandr \
     ca-certificates ttf-liberation xdg-utils \
@@ -168,19 +170,23 @@ RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/logfiles-link.desktop &
 
 # Ensure .vnc directory and xstartup have correct permissions if they exist or are created by vncserver later.
 # For now, rely on vncserver from entrypoint.sh to initialize as needed.
-# Create .vnc directory and xstartup for Fluxbox
+# Create TigerVNC config directory and xstartup for Fluxbox (XDG compliant)
 # autocutsel is a utility to sync X clipboard and cutbuffer, useful for VNC
 # dex is used to run .desktop files from autostart directories
 RUN apk add --no-cache autocutsel dex && \
-    mkdir -p /home/dockeruser/.vnc && \
+    mkdir -p /home/dockeruser/.config/tigervnc && \
     echo -e '#!/bin/sh\n\
+# This file is sourced by vncserver\n\
+# Unset SESSION_MANAGER and DBUS_SESSION_BUS_ADDRESS to avoid issues with duplicated services\n\
+unset SESSION_MANAGER\n\
+unset DBUS_SESSION_BUS_ADDRESS\n\
 xrdb $HOME/.Xresources\n\
 autocutsel -fork\n\
 dex -a -s /etc/xdg/autostart /home/dockeruser/.config/autostart &\n\
-fluxbox &' > /home/dockeruser/.vnc/xstartup && \
-    chown -R dockeruser:dockeruser /home/dockeruser/.vnc && \
-    chmod 700 /home/dockeruser/.vnc && \
-    chmod 755 /home/dockeruser/.vnc/xstartup
+fluxbox &' > /home/dockeruser/.config/tigervnc/xstartup && \
+    chown -R dockeruser:dockeruser /home/dockeruser/.config && \
+    chmod 700 /home/dockeruser/.config/tigervnc && \
+    chmod 755 /home/dockeruser/.config/tigervnc/xstartup
 
 # Final switch to dockeruser for runtime
 USER dockeruser

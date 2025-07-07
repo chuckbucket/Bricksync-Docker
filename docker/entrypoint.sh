@@ -147,8 +147,9 @@ echo "INFO: Starting noVNC server..."
 NOVNC_PID=$!
 
 echo "INFO: Starting VNC server..."
+# Removed --I-KNOW-THIS-IS-INSECURE option, changed -localhost no to -localhost=0
 vncserver $DISPLAY -depth $VNC_COL_DEPTH -geometry $VNC_RESOLUTION \
-  -SecurityTypes None -localhost no --I-KNOW-THIS-IS-INSECURE &
+  -SecurityTypes None -localhost=0 &
 VNCSERVER_PID=$!
 
 echo "-----------------------------"
