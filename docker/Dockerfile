@@ -176,14 +176,37 @@ RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/logfiles-link.desktop &
 RUN apk add --no-cache autocutsel dex && \
     mkdir -p /home/dockeruser/.config/tigervnc && \
     echo -e '#!/bin/sh\n\
-# This file is sourced by vncserver\n\
+\n\
+XSTARTUP_LOG="/tmp/bricksync_logs/xstartup.log"\n\
+# Redirect all output of this script to XSTARTUP_LOG\n\
+# Ensure the log directory /tmp/bricksync_logs/ exists and is writable by dockeruser (handled in entrypoint.sh)\n\
+exec >"$XSTARTUP_LOG" 2>&1\n\
+set -x # Enable command tracing for xstartup\n\
+\n\
+echo "INFO: Starting xstartup script..."\n\
+echo "INFO: User: $(whoami)"\n\
+echo "INFO: HOME: $HOME"\n\
+\n\
 # Unset SESSION_MANAGER and DBUS_SESSION_BUS_ADDRESS to avoid issues with duplicated services\n\
+echo "INFO: Unsetting SESSION_MANAGER and DBUS_SESSION_BUS_ADDRESS"\n\
 unset SESSION_MANAGER\n\
 unset DBUS_SESSION_BUS_ADDRESS\n\
-xrdb $HOME/.Xresources\n\
-autocutsel -fork\n\
-dex -a -s /etc/xdg/autostart /home/dockeruser/.config/autostart &\n\
-fluxbox &' > /home/dockeruser/.config/tigervnc/xstartup && \
+\n\
+echo "INFO: Sourcing Xresources..."\n\
+xrdb "$HOME/.Xresources" || echo "WARN: Failed to source .Xresources"\n\
+\n\
+echo "INFO: Starting autocutsel..."\n\
+autocutsel -fork || echo "WARN: Failed to start autocutsel"\n\
+\n\
+echo "INFO: Starting dex for XDG autostart..."\n\
+dex -a -s /etc/xdg/autostart "$HOME/.config/autostart" & || echo "WARN: Failed to start dex"\n\
+\n\
+echo "INFO: Starting fluxbox..."\n\
+fluxbox || echo "ERROR: fluxbox command failed or exited"\n\
+# If fluxbox exits, the script will end, and VNC session will terminate.\n\
+\n\
+echo "INFO: xstartup script finished (fluxbox exited?)."\n\
+' > /home/dockeruser/.config/tigervnc/xstartup && \
     chown -R dockeruser:dockeruser /home/dockeruser/.config && \
     chmod 700 /home/dockeruser/.config/tigervnc && \
     chmod 755 /home/dockeruser/.config/tigervnc/xstartup

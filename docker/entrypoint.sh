@@ -128,10 +128,38 @@ echo "INFO: BrickSync config setup complete."
 # VNC Setup
 trap ctrl_c INT TERM
 ctrl_c() {
-    kill -TERM -$$
-    wait
-    echo "INFO: VNC server and noVNC shut down."
-    exit 0
+    echo "INFO: Trap caught SIGINT or SIGTERM. Shutting down..."
+    # Attempt to dump logs before exiting
+    echo "INFO: [TRAP] Final contents of $NOVNC_LOG:"
+    cat "$NOVNC_LOG" || echo "INFO: [TRAP] Could not cat $NOVNC_LOG"
+    echo "INFO: [TRAP] Final contents of $VNCSERVER_LOG:"
+    cat "$VNCSERVER_LOG" || echo "INFO: [TRAP] Could not cat $VNCSERVER_LOG"
+    # Also try to dump xstartup.log if we create it later
+    if [ -f "$XSTARTUP_LOG" ]; then
+        echo "INFO: [TRAP] Final contents of $XSTARTUP_LOG:"
+        cat "$XSTARTUP_LOG" || echo "INFO: [TRAP] Could not cat $XSTARTUP_LOG"
+    fi
+
+    # Terminate script's own process group (includes background jobs if any were started by this shell directly without setsid)
+    # However, vncserver and novnc are complex; they might daemonize or manage their own process groups.
+    # A simple kill -TERM -$$ might not be enough to gracefully stop them if they are truly detached.
+    # For now, focus on getting logs.
+
+    # Try to kill the specific PIDs if they are still running
+    if [ -n "$NOVNC_PID" ] && ps -p $NOVNC_PID > /dev/null; then
+        echo "INFO: [TRAP] Sending SIGTERM to noVNC PID $NOVNC_PID"
+        kill -TERM $NOVNC_PID
+    fi
+    if [ -n "$VNCSERVER_PID" ] && ps -p $VNCSERVER_PID > /dev/null; then
+        echo "INFO: [TRAP] Sending SIGTERM to VNC Server PID $VNCSERVER_PID"
+        kill -TERM $VNCSERVER_PID
+    fi
+
+    # Give them a moment to die
+    sleep 0.5
+
+    echo "INFO: [TRAP] VNC server and noVNC shut down initiated."
+    exit 0 # Exit from trap
 }
 
 rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 2>/dev/null || true
@@ -167,8 +195,9 @@ mkdir -p "$LOG_DIR"
 chown dockeruser:dockeruser "$LOG_DIR"
 NOVNC_LOG="${LOG_DIR}/novnc.log"
 VNCSERVER_LOG="${LOG_DIR}/vncserver.log"
-touch "$NOVNC_LOG" "$VNCSERVER_LOG" || echo "WARN: Could not touch log files in $LOG_DIR"
-chown dockeruser:dockeruser "$NOVNC_LOG" "$VNCSERVER_LOG" 2>/dev/null || echo "WARN: Could not chown log files in $LOG_DIR"
+XSTARTUP_LOG="${LOG_DIR}/xstartup.log" # Define XSTARTUP_LOG for entrypoint
+touch "$NOVNC_LOG" "$VNCSERVER_LOG" "$XSTARTUP_LOG" || echo "WARN: Could not touch log files in $LOG_DIR"
+chown dockeruser:dockeruser "$NOVNC_LOG" "$VNCSERVER_LOG" "$XSTARTUP_LOG" 2>/dev/null || echo "WARN: Could not chown log files in $LOG_DIR"
 
 echo "INFO: Logging noVNC to $NOVNC_LOG"
 echo "INFO: Logging VNC Server to $VNCSERVER_LOG"
@@ -237,5 +266,7 @@ echo "INFO: Final contents of $NOVNC_LOG:"
 cat "$NOVNC_LOG" || echo "INFO: Could not cat $NOVNC_LOG"
 echo "INFO: Final contents of $VNCSERVER_LOG:"
 cat "$VNCSERVER_LOG" || echo "INFO: Could not cat $VNCSERVER_LOG"
+echo "INFO: Final contents of $XSTARTUP_LOG:"
+cat "$XSTARTUP_LOG" || echo "INFO: Could not cat $XSTARTUP_LOG"
 
 echo "INFO: Script finished. Container will now exit."
