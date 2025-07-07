@@ -27,8 +27,8 @@ RUN gcc -std=gnu99 -m64 cpuconf.c cpuinfo.c -O2 -s -o cpuconf && \
     ./cpuconf -h && \
     gcc -std=gnu99 -m64 bricksync.c bricksyncconf.c bricksyncnet.c bricksyncinit.c bricksyncinput.c bsantidebug.c bsmessage.c bsmathpuzzle.c bsorder.c bsregister.c bsapihistory.c bstranslation.c bsevalgrade.c bsoutputxml.c bsorderdir.c bspriceguide.c bsmastermode.c bscheck.c bssync.c bsapplydiff.c bsfetchorderinv.c bsresolve.c bscatedit.c bsfetchinv.c bsfetchorderlist.c bsfetchset.c bscheckreg.c bsfetchpriceguide.c tcp.c vtlex.c cpuinfo.c antidebug.c mm.c mmhash.c mmbitmap.c cc.c ccstr.c debugtrack.c tcphttp.c oauth.c bricklink.c brickowl.c brickowlinv.c colortable.c json.c bsx.c bsxpg.c journal.c exclperm.c iolog.c crypthash.c cryptsha1.c rand.c bn512.c bn1024.c rsabn.c -O2 -s -fvisibility=hidden -I/usr/local/include -o bricksync -lm -lpthread /usr/local/lib/libssl.a /usr/local/lib/libcrypto.a -ldl
 
-# Stage 2: Main application image (reverted to Debian 11 Bullseye)
-FROM debian:11.1-slim
+# Stage 2: Main application image (Switched to Alpine)
+FROM alpine:latest
 
 ENV DISPLAY=:1 \
     VNC_PORT=5901 \
@@ -37,27 +37,29 @@ ENV DISPLAY=:1 \
 
 # No interactive frontend during docker build
 # VNC_RESOLUTION is now set at runtime, with a default in entrypoint.sh
-ENV DEBIAN_FRONTEND=noninteractive
+# ENV DEBIAN_FRONTEND=noninteractive # Not needed for Alpine
 
-
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y \
-    xvfb xauth dbus-x11 xfce4 xfce4-terminal \
-    wget sudo curl git procps python x11-xserver-utils \
-    nano mousepad \
-    libnss3 libnspr4 libgbm1 ca-certificates fonts-liberation xdg-utils \
-    tigervnc-standalone-server tigervnc-common firefox-esr && \
-    curl http://ftp.us.debian.org/debian/pool/main/liba/libappindicator/libappindicator3-1_0.4.92-7_amd64.deb --output /opt/libappindicator3-1_0.4.92-7_amd64.deb && \
-    curl http://ftp.us.debian.org/debian/pool/main/libi/libindicator/libindicator3-7_0.5.0-4_amd64.deb --output /opt/libindicator3-7_0.5.0-4_amd64.deb && \
-    apt-get install -y /opt/libappindicator3-1_0.4.92-7_amd64.deb /opt/libindicator3-7_0.5.0-4_amd64.deb && \
+# Install dependencies on Alpine
+# libappindicator is not readily available on Alpine, skipping for now.
+# nano, mousepad removed to save space.
+# xfce4, xfce4-terminal will be replaced by fluxbox and xterm.
+RUN apk update && \
+    apk add --no-cache \
+    bash \
+    gcompat \
+    xvfb xauth dbus-x11 fluxbox xterm \
+    wget curl git procps python3 xrandr \
+    ca-certificates ttf-liberation xdg-utils \
+    tigervnc firefox-esr && \
+    # Create a symlink for python -> python3 for websockify
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    # Install noVNC and websockify
     echo "Installing noVNC and websockify..." && \
     git clone --branch v1.2.0 --single-branch https://github.com/novnc/noVNC.git /opt/noVNC && \
     git clone --branch v0.9.0 --single-branch https://github.com/novnc/websockify.git /opt/noVNC/utils/websockify && \
-    # Symlink will be created after redirect.html is copied
-    rm -vf /opt/lib*.deb && \
-    apt-get purge -y --auto-remove git && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    # Cleanup git
+    apk del git && \
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 
 # Copy icons
 COPY docker/icons/ /opt/noVNC/app/images/icons/
@@ -86,15 +88,23 @@ RUN ln -sf /opt/noVNC/redirect.html /opt/noVNC/index.html && \
 # RUN ls -la /root
 # RUN chmod 777 /root
 
-RUN groupadd -g 61000 dockeruser && \
-    useradd -g 61000 -l -m -s /bin/bash -u 61000 dockeruser
+# Create dockeruser group and user for Alpine
+# -S creates a system group/user
+# -G adds user to a group
+# -s specifies shell
+# -h sets home directory
+# We need bash for the shell, ensure it's installed (added to apk add)
+# Add user to 'wheel' group for sudo privileges - REMOVED as sudo is removed
+RUN addgroup -g 61000 -S dockeruser && \
+    adduser -u 61000 -S -s /bin/bash -h /home/dockeruser -G dockeruser dockeruser
 
 # Switch to root to create system-level directories and set up autostart
 USER root
 
 # Create /app directory for bricksync and related files
 # This needs to be done as root if it's directly under /
-RUN mkdir -p /app
+RUN mkdir -p /app && \
+    mkdir -p /app/data # Create data directory here
 
 # Create autostart directory for dockeruser and set its ownership immediately
 RUN mkdir -p /home/dockeruser/.config/autostart/ && \
@@ -118,11 +128,15 @@ COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 # - .config and subdirectories: 755 for dirs, 644 for files generally.
 # - .vnc/xstartup needs to be executable. vncserver usually handles this.
 # - .desktop files should be 644 or 755 if they need to be launched directly by user click in all DEs.
-RUN chown -R dockeruser:dockeruser /home/dockeruser && \
+# Sudo configuration removed as sudo package is removed
+RUN \
+    # Set ownership for /app and /home/dockeruser
+    # /home/dockeruser is created by adduser ... -h ...
+    # Alpine's adduser -S does not create home by default, but -h implies it should exist or be created.
+    # The adduser command `adduser -u 61000 -S -s /bin/bash -h /home/dockeruser ...` should create /home/dockeruser.
+    chown -R dockeruser:dockeruser /home/dockeruser && \
     chmod 750 /home/dockeruser && \
-    chown -R dockeruser:dockeruser /app && \
-    adduser dockeruser sudo && \
-    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+    chown -R dockeruser:dockeruser /app
 
 # Desktop and .desktop file setup
 USER root
@@ -154,12 +168,19 @@ RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/logfiles-link.desktop &
 
 # Ensure .vnc directory and xstartup have correct permissions if they exist or are created by vncserver later.
 # For now, rely on vncserver from entrypoint.sh to initialize as needed.
-# If xstartup were part of the image:
-# RUN mkdir -p /home/dockeruser/.vnc && \
-#     chown -R dockeruser:dockeruser /home/dockeruser/.vnc && \
-#     chmod 700 /home/dockeruser/.vnc && \
-#     echo -e '#!/bin/sh\nautocutsel -fork\nxfce4-session &' > /home/dockeruser/.vnc/xstartup && \
-#     chmod 755 /home/dockeruser/.vnc/xstartup
+# Create .vnc directory and xstartup for Fluxbox
+# autocutsel is a utility to sync X clipboard and cutbuffer, useful for VNC
+# dex is used to run .desktop files from autostart directories
+RUN apk add --no-cache autocutsel dex && \
+    mkdir -p /home/dockeruser/.vnc && \
+    echo -e '#!/bin/sh\n\
+xrdb $HOME/.Xresources\n\
+autocutsel -fork\n\
+dex -a -s /etc/xdg/autostart /home/dockeruser/.config/autostart &\n\
+fluxbox &' > /home/dockeruser/.vnc/xstartup && \
+    chown -R dockeruser:dockeruser /home/dockeruser/.vnc && \
+    chmod 700 /home/dockeruser/.vnc && \
+    chmod 755 /home/dockeruser/.vnc/xstartup
 
 # Final switch to dockeruser for runtime
 USER dockeruser
@@ -168,7 +189,7 @@ USER dockeruser
 # COPY assets/config/ /home/dockeruser/.config # User-provided assets folder, comment out as it's not in the repo
 
 # versions of local tools
-RUN echo  "debian version:  $(cat /etc/debian_version) \n" \
+RUN echo  "Alpine version:  $(cat /etc/alpine-release) \n" \
           "user:            $(whoami) \n"
 
 WORKDIR /app

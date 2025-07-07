@@ -47,7 +47,8 @@ update_config() {
 }
 
 mkdir -p "$DATA_DIR"
-sudo chown -R dockeruser:dockeruser "$DATA_DIR" || echo "WARN: Could not change ownership of $DATA_DIR"
+# Ownership should be correct from Dockerfile, sudo not needed here
+chown -R dockeruser:dockeruser "$DATA_DIR" 2>/dev/null || echo "WARN: Could not ensure ownership of $DATA_DIR (expected dockeruser)"
 
 if [ -f "$USER_CONFIG_FILE_PATH" ]; then
     echo "INFO: Found user config, copying..."
@@ -88,7 +89,8 @@ brickowl.pipelinequeue = 8;
 EOF
 fi
 
-sudo chown dockeruser:dockeruser "$EFFECTIVE_CONFIG_PATH" || echo "WARN: Could not chown $EFFECTIVE_CONFIG_PATH"
+# Ownership should be correct as dockeruser creates/copies the file into its own directory
+chown dockeruser:dockeruser "$EFFECTIVE_CONFIG_PATH" 2>/dev/null || echo "WARN: Could not ensure ownership of $EFFECTIVE_CONFIG_PATH (expected dockeruser)"
 
 # Apply environment configs
 echo "INFO: Applying environment overrides..."
@@ -141,7 +143,7 @@ VNC_COL_DEPTH="${VNC_COL_DEPTH:-32}"
 VNC_RESOLUTION="${VNC_RESOLUTION:-1600x900}"
 
 echo "INFO: Starting noVNC server..."
-/opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT −desktop BrickSync > /dev/null &
+/opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT --desktop BrickSync > /dev/null &
 NOVNC_PID=$!
 
 echo "INFO: Starting VNC server..."
