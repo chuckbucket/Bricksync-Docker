@@ -180,11 +180,12 @@ echo "INFO: Starting noVNC server..."
 NOVNC_PID=$!
 echo "INFO: noVNC PID: $NOVNC_PID"
 
-echo "INFO: Starting VNC server (simplified command for testing)..."
-# Temporarily simplified command to diagnose startup issues
-vncserver $DISPLAY -depth 24 -geometry 1024x768 >> "$VNCSERVER_LOG" 2>&1 &
+echo "INFO: Starting VNC server..."
+# Re-adding security options as the initial 'usage' error is resolved.
+vncserver $DISPLAY -depth $VNC_COL_DEPTH -geometry $VNC_RESOLUTION \
+  -SecurityTypes None -localhost=0 >> "$VNCSERVER_LOG" 2>&1 &
 VNCSERVER_PID=$!
-echo "INFO: VNC Server PID (simplified command): $VNCSERVER_PID"
+echo "INFO: VNC Server PID: $VNCSERVER_PID"
 
 set +x # Disable command tracing
 
@@ -231,4 +232,10 @@ fi
 
 # Adding a small sleep to allow any final logs to flush.
 sleep 1
+
+echo "INFO: Final contents of $NOVNC_LOG:"
+cat "$NOVNC_LOG" || echo "INFO: Could not cat $NOVNC_LOG"
+echo "INFO: Final contents of $VNCSERVER_LOG:"
+cat "$VNCSERVER_LOG" || echo "INFO: Could not cat $VNCSERVER_LOG"
+
 echo "INFO: Script finished. Container will now exit."
