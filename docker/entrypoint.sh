@@ -142,21 +142,93 @@ DISPLAY="${DISPLAY:-:1}"
 VNC_COL_DEPTH="${VNC_COL_DEPTH:-32}"
 VNC_RESOLUTION="${VNC_RESOLUTION:-1600x900}"
 
-echo "INFO: Starting noVNC server..."
-/opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT --desktop BrickSync > /dev/null &
-NOVNC_PID=$!
+echo "INFO: VNC and noVNC Startup Sequence"
+echo "INFO: Current user: $(id)"
+echo "INFO: PATH: $PATH"
+WHICH_VNCSERVER=$(which vncserver)
+echo "INFO: which vncserver: $WHICH_VNCSERVER"
+if [ -n "$WHICH_VNCSERVER" ]; then
+    echo "INFO: ls -l \$(which vncserver):"
+    ls -l "$WHICH_VNCSERVER"
+else
+    echo "ERROR: vncserver not found in PATH."
+fi
+echo "INFO: VNC_PORT=${VNC_PORT}, NO_VNC_PORT=${NO_VNC_PORT}, DISPLAY=${DISPLAY}"
+echo "INFO: VNC_COL_DEPTH=${VNC_COL_DEPTH}, VNC_RESOLUTION=${VNC_RESOLUTION}"
 
-echo "INFO: Starting VNC server..."
-# Removed --I-KNOW-THIS-IS-INSECURE option, changed -localhost no to -localhost=0
-vncserver $DISPLAY -depth $VNC_COL_DEPTH -geometry $VNC_RESOLUTION \
-  -SecurityTypes None -localhost=0 &
+# Ensure log files can be written by dockeruser
+# These files are expected to be in /var/log, which might not be writable by default by dockeruser.
+# Consider creating /var/log/bricksync/ owned by dockeruser and logging there,
+# or ensure /var/log is writable or these specific files are pre-created with correct permissions.
+# For now, we'll attempt to use /var/log and let it fail if permissions are wrong,
+# as changing Dockerfile for /var/log ownership is a separate step.
+LOG_DIR="/tmp/bricksync_logs"
+mkdir -p "$LOG_DIR"
+chown dockeruser:dockeruser "$LOG_DIR"
+NOVNC_LOG="${LOG_DIR}/novnc.log"
+VNCSERVER_LOG="${LOG_DIR}/vncserver.log"
+touch "$NOVNC_LOG" "$VNCSERVER_LOG" || echo "WARN: Could not touch log files in $LOG_DIR"
+chown dockeruser:dockeruser "$NOVNC_LOG" "$VNCSERVER_LOG" 2>/dev/null || echo "WARN: Could not chown log files in $LOG_DIR"
+
+echo "INFO: Logging noVNC to $NOVNC_LOG"
+echo "INFO: Logging VNC Server to $VNCSERVER_LOG"
+
+set -x # Enable command tracing for VNC/noVNC launch
+
+echo "INFO: Starting noVNC server..."
+/opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT --desktop BrickSync >> "$NOVNC_LOG" 2>&1 &
+NOVNC_PID=$!
+echo "INFO: noVNC PID: $NOVNC_PID"
+
+echo "INFO: Starting VNC server (simplified command for testing)..."
+# Temporarily simplified command to diagnose startup issues
+vncserver $DISPLAY -depth 24 -geometry 1024x768 >> "$VNCSERVER_LOG" 2>&1 &
 VNCSERVER_PID=$!
+echo "INFO: VNC Server PID (simplified command): $VNCSERVER_PID"
+
+set +x # Disable command tracing
 
 echo "-----------------------------"
 echo "INFO: noVNC available at: http://localhost:${NO_VNC_PORT}/vnc.html (replace 'localhost' with your Docker host IP if accessing remotely)"
-
+echo "INFO: Check $NOVNC_LOG and $VNCSERVER_LOG for startup messages."
 echo "-----------------------------"
 
-echo "INFO: VNC services started. Awaiting termination..."
-wait $NOVNC_PID $VNCSERVER_PID
-wait
+# Check if processes are running
+if [ -n "$NOVNC_PID" ] && ps -p $NOVNC_PID > /dev/null; then
+    echo "INFO: noVNC process $NOVNC_PID is running."
+else
+    echo "ERROR: noVNC process $NOVNC_PID not found or failed to start. Check $NOVNC_LOG."
+    echo "INFO: Contents of $NOVNC_LOG:"
+    cat "$NOVNC_LOG" || echo "INFO: Could not cat $NOVNC_LOG"
+fi
+
+if [ -n "$VNCSERVER_PID" ] && ps -p $VNCSERVER_PID > /dev/null; then
+    echo "INFO: VNC server process $VNCSERVER_PID is running."
+else
+    echo "ERROR: VNC server process $VNCSERVER_PID not found or failed to start. Check $VNCSERVER_LOG."
+    echo "INFO: Contents of $VNCSERVER_LOG:"
+    cat "$VNCSERVER_LOG" || echo "INFO: Could not cat $VNCSERVER_LOG"
+fi
+
+echo "INFO: Awaiting termination of PIDs: NOVNC_PID=$NOVNC_PID, VNCSERVER_PID=$VNCSERVER_PID ..."
+# Wait for both processes. If one fails to start, its PID might be empty or invalid.
+# `wait` can handle multiple PIDs. It will return when all specified PIDs have exited.
+# If a PID is invalid or already exited, wait might behave differently based on shell.
+# We rely on the PIDs being valid if the commands launched successfully.
+
+# Store PIDs that we expect to be valid
+PIDS_TO_WAIT=""
+[ -n "$NOVNC_PID" ] && PIDS_TO_WAIT="$PIDS_TO_WAIT $NOVNC_PID"
+[ -n "$VNCSERVER_PID" ] && PIDS_TO_WAIT="$PIDS_TO_WAIT $VNCSERVER_PID"
+
+if [ -n "$PIDS_TO_WAIT" ]; then
+    wait $PIDS_TO_WAIT
+    EC=$?
+    echo "INFO: Primary wait command for ($PIDS_TO_WAIT) finished with exit code: $EC."
+else
+    echo "INFO: No valid PIDs to wait for. Both processes may have failed to start."
+fi
+
+# Adding a small sleep to allow any final logs to flush.
+sleep 1
+echo "INFO: Script finished. Container will now exit."
