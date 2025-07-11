@@ -126,11 +126,6 @@ RUN mkdir -p /home/dockeruser/Desktop && \
     chown dockeruser:dockeruser /home/dockeruser/Desktop && \
     chmod 755 /home/dockeruser/Desktop
 
-# Copy the BrickSync warning shortcut to the user's Desktop
-COPY docker/warning.desktop /home/dockeruser/Desktop/warning.desktop
-RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/warning.desktop && \
-    chmod 644 /home/dockeruser/Desktop/warning.desktop
-
 
 # Copy the GitHub link .desktop file to the user's Desktop
 COPY docker/BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
