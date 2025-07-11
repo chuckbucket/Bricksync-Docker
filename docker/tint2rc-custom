@@ -44,10 +44,6 @@ launcher_icon = folder-open # Placeholder
 launcher_tooltip = Open Log Files Directory
 launcher_exec = pcmanfm /app/data/logs
 
-# Warning Link
-launcher_icon = dialog-warning
-launcher_tooltip = Desktop Save Warning
-launcher_exec = zenity --warning --title="Desktop Save Warning" --text="Do not save files to desktop. They will be lost on container restart."
 
 #---------------------------------------------
 # TASKBAR / TASKS
