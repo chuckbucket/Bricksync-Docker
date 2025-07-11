@@ -27,6 +27,7 @@ panel_items = LTSBC # L=Launcher, T=Taskbar, S=Systray, B=Battery, C=Clock
 #---------------------------------------------
 # LAUNCHER
 #---------------------------------------------
+launcher_icon_theme = gnome
 launcher_padding = 2 4 2
 launcher_background_id = 0
 launcher_icon_size = 24
