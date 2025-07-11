@@ -42,9 +42,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
-    xvfb xauth dbus-x11 xfce4 xfce4-terminal \
+    xvfb xauth dbus-x11 \
+    openbox lxterminal tint2 obconf lxappearance feh mousepad pcmanfm wmctrl zenity libgtk-3-bin \
     wget sudo curl git procps python x11-xserver-utils \
-    nano mousepad \
+    nano \
     libnss3 libnspr4 libgbm1 ca-certificates fonts-liberation xdg-utils \
     tigervnc-standalone-server tigervnc-common firefox-esr && \
     curl http://ftp.us.debian.org/debian/pool/main/liba/libappindicator/libappindicator3-1_0.4.92-7_amd64.deb --output /opt/libappindicator3-1_0.4.92-7_amd64.deb && \
@@ -100,14 +101,9 @@ RUN mkdir -p /app
 RUN mkdir -p /home/dockeruser/.config/autostart/ && \
     chown dockeruser:dockeruser /home/dockeruser/.config/autostart/
 
-# Copy the .desktop file for bricksync in terminal
-# Ensure 'bricksync-terminal.desktop' exists in your Docker build context (same dir as Dockerfile)
-COPY docker/bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
-RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-terminal.desktop && \
-    chmod 644 /home/dockeruser/.config/autostart/bricksync-terminal.desktop
-
 # Copy compiled application and default config from builder stage
 COPY --from=builder /app/bricksync /app/bricksync
+RUN chmod +x /app/bricksync
 COPY --from=builder /app/bricksync.conf.txt /app/bricksync.conf.txt
 
 # Set ownership for /app and /home/dockeruser, and sudo permissions
@@ -130,11 +126,6 @@ RUN mkdir -p /home/dockeruser/Desktop && \
     chown dockeruser:dockeruser /home/dockeruser/Desktop && \
     chmod 755 /home/dockeruser/Desktop
 
-# Copy the BrickSync warning shortcut to the user's Desktop
-COPY docker/warning.desktop /home/dockeruser/Desktop/warning.desktop
-RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/warning.desktop && \
-    chmod 644 /home/dockeruser/Desktop/warning.desktop
-
 
 # Copy the GitHub link .desktop file to the user's Desktop
 COPY docker/BricksyncGitHub.desktop /home/dockeruser/Desktop/BricksyncGitHub.desktop
@@ -154,12 +145,39 @@ RUN chown dockeruser:dockeruser /home/dockeruser/Desktop/logfiles-link.desktop &
 
 # Ensure .vnc directory and xstartup have correct permissions if they exist or are created by vncserver later.
 # For now, rely on vncserver from entrypoint.sh to initialize as needed.
-# If xstartup were part of the image:
-# RUN mkdir -p /home/dockeruser/.vnc && \
-#     chown -R dockeruser:dockeruser /home/dockeruser/.vnc && \
-#     chmod 700 /home/dockeruser/.vnc && \
-#     echo -e '#!/bin/sh\nautocutsel -fork\nxfce4-session &' > /home/dockeruser/.vnc/xstartup && \
-#     chmod 755 /home/dockeruser/.vnc/xstartup
+# Create .vnc directory and xstartup for Openbox
+RUN mkdir -p /home/dockeruser/.vnc && \
+    echo -e '#!/bin/sh\n\n# Start VNC specific utilities\nautocutsel -fork\n\n# Start OpenBox session\nexec /usr/bin/openbox-session' > /home/dockeruser/.vnc/xstartup && \
+    chown -R dockeruser:dockeruser /home/dockeruser/.vnc && \
+    chmod 700 /home/dockeruser/.vnc && \
+    chmod 755 /home/dockeruser/.vnc/xstartup
+
+# Create Openbox autostart directory and script
+RUN mkdir -p /home/dockeruser/.config/openbox && \
+    echo -e '#!/bin/sh\n\n# Set default web browser\nxdg-settings set default-web-browser firefox-esr.desktop &\n\n# Set a background color\nfeh --bg-color "#202020" &\n\n# Start the panel (using custom config)\ntint2 -c /home/dockeruser/.config/tint2/tint2rc &\n\n# Autostart BrickSync in a terminal, disabling AT-SPI bridge, setting working directory and title\nNO_AT_BRIDGE=1 lxterminal --title="BrickSync" --working-directory=/app -e "/app/bricksync" &\n\n# Maximize the BrickSync terminal shortly after launch\n(sleep 2 && wmctrl -r "BrickSync" -b add,maximized_vert,maximized_horz) &' > /home/dockeruser/.config/openbox/autostart && \
+    chown -R dockeruser:dockeruser /home/dockeruser/.config && \
+    chmod +x /home/dockeruser/.config/openbox/autostart
+
+# Setup tint2 configuration
+USER root
+RUN mkdir -p /home/dockeruser/.config/tint2 && \
+    chown dockeruser:dockeruser /home/dockeruser/.config/tint2
+COPY docker/tint2rc-custom /home/dockeruser/.config/tint2/tint2rc
+RUN chown dockeruser:dockeruser /home/dockeruser/.config/tint2/tint2rc && \
+    chmod 644 /home/dockeruser/.config/tint2/tint2rc
+
+# Install custom Bricksync icon
+RUN mkdir -p /home/dockeruser/.local/share/icons/hicolor/scalable/apps && \
+    chown -R dockeruser:dockeruser /home/dockeruser/.local
+COPY docker/bricksync.png /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png
+RUN chown dockeruser:dockeruser /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png && \
+    chmod 644 /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png
+# Update icon cache as dockeruser
+USER dockeruser
+RUN gtk-update-icon-cache -f -t /home/dockeruser/.local/share/icons/hicolor || true
+# Switch back to root for any final root operations if needed, or proceed to USER dockeruser if not.
+USER root
+
 
 # Final switch to dockeruser for runtime
 USER dockeruser

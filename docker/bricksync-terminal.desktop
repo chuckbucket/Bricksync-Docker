@@ -5,8 +5,8 @@ Type=Application
 Name=Run BrickSync
 Comment=Run Bricksync in a terminal
 Path=/app
-Exec=xfce4-terminal --fullscreen --hold --command="/app/bricksync"
+Exec=lxterminal -e "/app/bricksync"
 StartupNotify=false
 Terminal=false
 Hidden=false
-Icon=/home/dockeruser/icons/bricksync.png
+Icon=bricksync
