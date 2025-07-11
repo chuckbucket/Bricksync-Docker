@@ -30,8 +30,6 @@ panel_items = LTSBC # L=Launcher, T=Taskbar, S=Systray, B=Battery, C=Clock
 launcher_padding = 2 4 2
 launcher_background_id = 0
 launcher_icon_size = 24
-launcher_item_app = /usr/share/applications/lxterminal.desktop # Example: Terminal
-# launcher_item_app = /usr/share/applications/pcmanfm.desktop   # Example: File Manager
 
 # Custom Launchers for Bricksync Links
 # GitHub Link
@@ -44,17 +42,17 @@ launcher_icon = folder-open # Placeholder
 launcher_tooltip = Open Log Files Directory
 launcher_exec = pcmanfm /app/data/logs
 
-
 #---------------------------------------------
 # TASKBAR / TASKS
 #---------------------------------------------
 taskbar_mode = multi_desktop
 taskbar_padding = 2 2 2
 taskbar_background_id = 0
-# task_icon = 1
-# task_text = 0
+task_icon = 1
+task_text = 0
 # task_centered = 1
-task_maximum_size = 150 35
+task_maximum_size = 180 28 # Increased width, decreased height to fit icons better
+task_icon_size = 22        # Explicitly set task icon size
 urgent_nb_of_blink = 20
 
 #---------------------------------------------
