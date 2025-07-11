@@ -43,7 +43,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
     xvfb xauth dbus-x11 \
-    openbox lxterminal tint2 obconf lxappearance feh mousepad pcmanfm wmctrl \
+    openbox lxterminal tint2 obconf lxappearance feh mousepad pcmanfm wmctrl zenity \
     wget sudo curl git procps python x11-xserver-utils \
     nano \
     libnss3 libnspr4 libgbm1 ca-certificates fonts-liberation xdg-utils \
@@ -159,9 +159,17 @@ RUN mkdir -p /home/dockeruser/.vnc && \
 
 # Create Openbox autostart directory and script
 RUN mkdir -p /home/dockeruser/.config/openbox && \
-    echo -e '#!/bin/sh\n\n# Set default web browser\nxdg-settings set default-web-browser firefox-esr.desktop &\n\n# Set a background color\nfeh --bg-color "#202020" &\n\n# Start the panel\ntint2 &\n\n# Enable PCManFM desktop management for icons\npcmanfm --desktop & \n\n# Autostart BrickSync in a terminal, disabling AT-SPI bridge, setting working directory and title\nNO_AT_BRIDGE=1 lxterminal --title="BrickSync" --working-directory=/app -e "/app/bricksync" &\n\n# Maximize the BrickSync terminal shortly after launch\n(sleep 2 && wmctrl -r "BrickSync" -b add,maximized_vert,maximized_horz) &' > /home/dockeruser/.config/openbox/autostart && \
+    echo -e '#!/bin/sh\n\n# Set default web browser\nxdg-settings set default-web-browser firefox-esr.desktop &\n\n# Set a background color\nfeh --bg-color "#202020" &\n\n# Start the panel (using custom config)\ntint2 -c /home/dockeruser/.config/tint2/tint2rc &\n\n# Autostart BrickSync in a terminal, disabling AT-SPI bridge, setting working directory and title\nNO_AT_BRIDGE=1 lxterminal --title="BrickSync" --working-directory=/app -e "/app/bricksync" &\n\n# Maximize the BrickSync terminal shortly after launch\n(sleep 2 && wmctrl -r "BrickSync" -b add,maximized_vert,maximized_horz) &' > /home/dockeruser/.config/openbox/autostart && \
     chown -R dockeruser:dockeruser /home/dockeruser/.config && \
     chmod +x /home/dockeruser/.config/openbox/autostart
+
+# Setup tint2 configuration
+USER root
+RUN mkdir -p /home/dockeruser/.config/tint2 && \
+    chown dockeruser:dockeruser /home/dockeruser/.config/tint2
+COPY docker/tint2rc-custom /home/dockeruser/.config/tint2/tint2rc
+RUN chown dockeruser:dockeruser /home/dockeruser/.config/tint2/tint2rc && \
+    chmod 644 /home/dockeruser/.config/tint2/tint2rc
 
 # Final switch to dockeruser for runtime
 USER dockeruser
