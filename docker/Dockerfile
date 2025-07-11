@@ -101,12 +101,6 @@ RUN mkdir -p /app
 RUN mkdir -p /home/dockeruser/.config/autostart/ && \
     chown dockeruser:dockeruser /home/dockeruser/.config/autostart/
 
-# Copy the .desktop file for bricksync in terminal
-# Ensure 'bricksync-terminal.desktop' exists in your Docker build context (same dir as Dockerfile)
-COPY docker/bricksync-terminal.desktop /home/dockeruser/.config/autostart/bricksync-terminal.desktop
-RUN chown dockeruser:dockeruser /home/dockeruser/.config/autostart/bricksync-terminal.desktop && \
-    chmod 644 /home/dockeruser/.config/autostart/bricksync-terminal.desktop
-
 # Copy compiled application and default config from builder stage
 COPY --from=builder /app/bricksync /app/bricksync
 RUN chmod +x /app/bricksync

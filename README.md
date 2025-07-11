@@ -55,7 +55,7 @@ If you prefer to build the image yourself:
 
 ### Running BrickSync (GUI Mode via VNC/noVNC)
 
-The Docker image runs BrickSync within an Xfce desktop environment, accessible via VNC (port `5901` inside the container) and noVNC (port `6901` inside the container for web browser access).
+The Docker image runs BrickSync within a lightweight OpenBox desktop environment (featuring `pcmanfm` for file/desktop management and `tint2` for the panel), accessible via VNC (port `5901` inside the container) and noVNC (port `6901` inside the container for web browser access).
 
 **Example `docker run` command:**
 
