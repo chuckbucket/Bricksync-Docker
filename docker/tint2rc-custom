@@ -20,7 +20,7 @@ border_color_pressed = #ffffff 20
 
 #-------------------------------------
 # Panel
-panel_items = LTSC
+panel_items = LPTSC
 panel_size = 98% 30
 panel_margin = 0 0
 panel_padding = 7 0 7
