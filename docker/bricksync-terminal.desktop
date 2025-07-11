@@ -9,4 +9,4 @@ Exec=lxterminal -e "/app/bricksync"
 StartupNotify=false
 Terminal=false
 Hidden=false
-Icon=/home/dockeruser/icons/bricksync.png
+Icon=bricksync

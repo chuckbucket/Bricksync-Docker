@@ -43,7 +43,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
     xvfb xauth dbus-x11 \
-    openbox lxterminal tint2 obconf lxappearance feh mousepad pcmanfm wmctrl zenity \
+    openbox lxterminal tint2 obconf lxappearance feh mousepad pcmanfm wmctrl zenity libgtk-3-bin \
     wget sudo curl git procps python x11-xserver-utils \
     nano \
     libnss3 libnspr4 libgbm1 ca-certificates fonts-liberation xdg-utils \
@@ -165,6 +165,19 @@ RUN mkdir -p /home/dockeruser/.config/tint2 && \
 COPY docker/tint2rc-custom /home/dockeruser/.config/tint2/tint2rc
 RUN chown dockeruser:dockeruser /home/dockeruser/.config/tint2/tint2rc && \
     chmod 644 /home/dockeruser/.config/tint2/tint2rc
+
+# Install custom Bricksync icon
+RUN mkdir -p /home/dockeruser/.local/share/icons/hicolor/scalable/apps && \
+    chown -R dockeruser:dockeruser /home/dockeruser/.local
+COPY docker/icons/bricksync.png /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png
+RUN chown dockeruser:dockeruser /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png && \
+    chmod 644 /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png
+# Update icon cache as dockeruser
+USER dockeruser
+RUN gtk-update-icon-cache -f -t /home/dockeruser/.local/share/icons/hicolor || true
+# Switch back to root for any final root operations if needed, or proceed to USER dockeruser if not.
+USER root
+
 
 # Final switch to dockeruser for runtime
 USER dockeruser

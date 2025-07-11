@@ -69,11 +69,11 @@ task_align = left
 
 #-------------------------------------
 # Task
-task_text = 0
+task_text = 1
 task_icon = 1
 task_centered = 0
 urgent_nb_of_blink = 20
-task_maximum_size = 180 28
+task_maximum_size = 250 28
 task_padding = 0 0 0
 task_tooltip = 0
 task_thumbnail = 0
