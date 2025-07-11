@@ -20,7 +20,7 @@ border_color_pressed = #ffffff 20
 
 #-------------------------------------
 # Panel
-panel_items = LPTSC
+panel_items = LETSC
 panel_size = 98% 30
 panel_margin = 0 0
 panel_padding = 7 0 7
@@ -109,6 +109,16 @@ launcher_item_app = /usr/share/applications/lxterminal.desktop
 launcher_item_app = /usr/share/applications/mousepad.desktop
 launcher_item_app = /usr/share/applications/pcmanfm.desktop
 launcher_item_app = /home/dockeruser/Desktop/BrickSync.desktop
+
+#-------------------------------------
+# Executor as Separator
+#-------------------------------------
+execp = new
+execp_command = /bin/true
+execp_interval = 0
+execp_text = |
+execp_font_color = #777777 85
+execp_padding = 2 5
 
 #-------------------------------------
 # Clock
