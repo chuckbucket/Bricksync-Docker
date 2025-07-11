@@ -32,16 +32,21 @@ launcher_padding = 2 4 2
 launcher_background_id = 0
 launcher_icon_size = 24
 
-# Custom Launchers for Bricksync Links
-# GitHub Link
-launcher_icon = text-html # Placeholder, might need a specific path or theme icon
-launcher_tooltip = BrickSync GitHub Repository
-launcher_exec = firefox-esr https://github.com/ZZJHONS/Bricksync
+# Custom Launchers for Bricksync Links (Commented out for testing)
+# # GitHub Link
+# launcher_icon = text-html # Placeholder, might need a specific path or theme icon
+# launcher_tooltip = BrickSync GitHub Repository
+# launcher_exec = firefox-esr https://github.com/ZZJHONS/Bricksync
+#
+# # Log Files Link
+# launcher_icon = folder-open # Placeholder
+# launcher_tooltip = Open Log Files Directory
+# launcher_exec = pcmanfm /app/data/logs
 
-# Log Files Link
-launcher_icon = folder-open # Placeholder
-launcher_tooltip = Open Log Files Directory
-launcher_exec = pcmanfm /app/data/logs
+# Test Launcher
+launcher_exec = lxterminal
+launcher_tooltip = Test Terminal LX
+launcher_icon = utilities-terminal
 
 #---------------------------------------------
 # TASKBAR / TASKS
