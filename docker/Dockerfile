@@ -169,7 +169,7 @@ RUN chown dockeruser:dockeruser /home/dockeruser/.config/tint2/tint2rc && \
 # Install custom Bricksync icon
 RUN mkdir -p /home/dockeruser/.local/share/icons/hicolor/scalable/apps && \
     chown -R dockeruser:dockeruser /home/dockeruser/.local
-COPY docker/icons/bricksync.png /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png
+COPY docker/bricksync.png /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png
 RUN chown dockeruser:dockeruser /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png && \
     chmod 644 /home/dockeruser/.local/share/icons/hicolor/scalable/apps/bricksync.png
 # Update icon cache as dockeruser
