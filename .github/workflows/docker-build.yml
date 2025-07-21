@@ -1,0 +1,72 @@
+name: Docker Image CI
+
+on:
+  push:
+  workflow_dispatch: # Allows manual triggering
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/bricksync-docker
+
+jobs:
+  build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # Recommended for metadata-action provenance
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      id: buildx # Give id to this step
+      uses: docker/setup-buildx-action@v2
+
+    - name: Extract metadata for Docker
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          # type=schedule # Disabled for now, can be re-enabled if needed
+          # type=ref,event=branch  # Replaced by more specific logic below
+          # type=ref,event=pr # Disabled for now, can be re-enabled if needed for PRs
+          # type=semver,pattern={{version}} # Disabled for now
+          # type=semver,pattern={{major}}.{{minor}} # Disabled for now
+          # type=semver,pattern={{major}} # Disabled for now
+          type=sha,prefix=,suffix=,format=short # Keep short SHA for all builds
+
+          # Tag as 'latest' for the default branch
+          type=raw,value=latest,enable={{is_default_branch}}
+
+          # Tag as 'beta' for non-default branches
+          # Corrected logic: enable if the current ref is NOT the default branch.
+          type=raw,value=beta,enable=${{ github.ref_name != github.event.repository.default_branch }}
+
+    - name: Login to GitHub Container Registry
+      if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }} # Using github.actor as it's generally preferred
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      id: build-and-push
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./docker/Dockerfile
+        builder: ${{ steps.buildx.outputs.name }}
+        push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        provenance: true # Enable SLSA provenance generation (recommended)

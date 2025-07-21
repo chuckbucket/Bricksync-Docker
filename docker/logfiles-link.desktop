@@ -1,0 +1,7 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Log Files
+Comment=View log file dir.
+Icon=folder-documents
+Exec=bash -c 'LOG_DIR="/app/data/logs"; if [ -d "$LOG_DIR" ] && [ -n "$(ls -A "$LOG_DIR")" ]; then pcmanfm "$LOG_DIR"; else zenity --info --text="Log directory is empty or does not exist."; fi'
