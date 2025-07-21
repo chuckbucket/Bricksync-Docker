@@ -92,34 +92,35 @@ sudo chown dockeruser:dockeruser "$EFFECTIVE_CONFIG_PATH" || echo "WARN: Could n
 
 # Apply environment configs
 echo "INFO: Applying environment overrides..."
-[ -n "$BRICKSYNC_AUTOCHECK" ] && update_config "autocheck" "$BRICKSYNC_AUTOCHECK" "$EFFECTIVE_CONFIG_PATH" "true"
-[ -n "$BRICKSYNC_BRICKLINK_CONSUMERKEY" ] && update_config "bricklink.consumerkey" "$BRICKSYNC_BRICKLINK_CONSUMERKEY" "$EFFECTIVE_CONFIG_PATH"
-[ -n "$BRICKSYNC_BRICKLINK_CONSUMERSECRET" ] && update_config "bricklink.consumersecret" "$BRICKSYNC_BRICKLINK_CONSUMERSECRET" "$EFFECTIVE_CONFIG_PATH"
-[ -n "$BRICKSYNC_BRICKLINK_TOKEN" ] && update_config "bricklink.token" "$BRICKSYNC_BRICKLINK_TOKEN" "$EFFECTIVE_CONFIG_PATH"
-[ -n "$BRICKSYNC_BRICKLINK_TOKENSECRET" ] && update_config "bricklink.tokensecret" "$BRICKSYNC_BRICKLINK_TOKENSECRET" "$EFFECTIVE_CONFIG_PATH"
-[ -n "$BRICKSYNC_BRICKLINK_FAILINTERVAL" ] && update_config "bricklink.failinterval" "$BRICKSYNC_BRICKLINK_FAILINTERVAL" "$EFFECTIVE_CONFIG_PATH" "true"
-[ -n "$BRICKSYNC_BRICKLINK_POLLINTERVAL" ] && update_config "bricklink.pollinterval" "$BRICKSYNC_BRICKLINK_POLLINTERVAL" "$EFFECTIVE_CONFIG_PATH" "true"
-[ -n "$BRICKSYNC_BRICKOWL_KEY" ] && update_config "brickowl.key" "$BRICKSYNC_BRICKOWL_KEY" "$EFFECTIVE_CONFIG_PATH"
-[ -n "$BRICKSYNC_BRICKOWL_FAILINTERVAL" ] && update_config "brickowl.failinterval" "$BRICKSYNC_BRICKOWL_FAILINTERVAL" "$EFFECTIVE_CONFIG_PATH" "true"
-[ -n "$BRICKSYNC_BRICKOWL_POLLINTERVAL" ] && update_config "brickowl.pollinterval" "$BRICKSYNC_BRICKOWL_POLLINTERVAL" "$EFFECTIVE_CONFIG_PATH" "true"
+while IFS= read -r line; do
+    # Skip comments and empty lines
+    if [[ "$line" =~ ^\s*// || -z "$line" ]]; then
+        continue
+    fi
 
-if [ -n "$BRICKSYNC_PRICEGUIDE_CACHEPATH" ]; then
-    update_config "priceguide.cachepath" "$BRICKSYNC_PRICEGUIDE_CACHEPATH" "$EFFECTIVE_CONFIG_PATH"
-    mkdir -p "$(dirname "$BRICKSYNC_PRICEGUIDE_CACHEPATH")"
-else
-    DEFAULT_PG_PATH=$(grep '^priceguide.cachepath[[:space:]]*=' "$EFFECTIVE_CONFIG_PATH" \
-        | sed -E 's/.*=\s*"?([^";]+)"?.*/\1/' \
-        | sed "s|^\.*/*data|${APP_DIR}/data|")
-    [ -n "$DEFAULT_PG_PATH" ] && mkdir -p "$(dirname "$DEFAULT_PG_PATH")"
-fi
+    # Extract the key from the line
+    key=$(echo "$line" | sed -E 's/^\s*([a-zA-Z0-9\._]+)\s*=.*/\1/')
 
-[ -n "$BRICKSYNC_PRICEGUIDE_CACHEFORMAT" ] && update_config "priceguide.cacheformat" "$BRICKSYNC_PRICEGUIDE_CACHEFORMAT" "$EFFECTIVE_CONFIG_PATH"
-[ -n "$BRICKSYNC_PRICEGUIDE_CACHETIME" ] && update_config "priceguide.cachetime" "$BRICKSYNC_PRICEGUIDE_CACHETIME" "$EFFECTIVE_CONFIG_PATH" "true"
-[ -n "$BRICKSYNC_RETAINEMPTYLOTS" ] && update_config "retainemptylots" "$BRICKSYNC_RETAINEMPTYLOTS" "$EFFECTIVE_CONFIG_PATH" "true"
-[ -n "$BRICKSYNC_BRICKOWL_REUSEEMPTY" ] && update_config "brickowl.reuseempty" "$BRICKSYNC_BRICKOWL_REUSEEMPTY" "$EFFECTIVE_CONFIG_PATH" "true"
-[ -n "$BRICKSYNC_CHECKMESSAGE" ] && update_config "checkmessage" "$BRICKSYNC_CHECKMESSAGE" "$EFFECTIVE_CONFIG_PATH" "true"
-[ -n "$BRICKSYNC_BRICKLINK_PIPELINEQUEUE" ] && update_config "bricklink.pipelinequeue" "$BRICKSYNC_BRICKLINK_PIPELINEQUEUE" "$EFFECTIVE_CONFIG_PATH" "true"
-[ -n "$BRICKSYNC_BRICKOWL_PIPELINEQUEUE" ] && update_config "brickowl.pipelinequeue" "$BRICKSYNC_BRICKOWL_PIPELINEQUEUE" "$EFFECTIVE_CONFIG_PATH" "true"
+    # Transform the key to an environment variable name
+    # (e.g., "bricklink.consumerkey" -> "BRICKSYNC_BRICKLINK_CONSUMERKEY")
+    env_var_name=$(echo "$key" | tr '[:lower:]' '[:upper:]' | tr '.' '_')
+    env_var_name="BRICKSYNC_$env_var_name"
+
+    # Check if the environment variable is set
+    if [ -n "${!env_var_name}" ]; then
+        value="${!env_var_name}"
+        # Determine if the value should be treated as a string or numeric/boolean
+        is_numeric_or_bool="false"
+        if [[ "$value" =~ ^[0-9]+$ || "$value" == "true" || "$value" == "false" ]]; then
+            # Check original config for quotes to be sure
+            original_value_line=$(grep "^${key}[[:space:]]*=" "$EFFECTIVE_CONFIG_PATH")
+            if [[ ! "$original_value_line" =~ \" ]]; then
+                is_numeric_or_bool="true"
+            fi
+        fi
+        update_config "$key" "$value" "$EFFECTIVE_CONFIG_PATH" "$is_numeric_or_bool"
+    fi
+done < "$EFFECTIVE_CONFIG_PATH"
 
 echo "INFO: BrickSync config setup complete."
 
