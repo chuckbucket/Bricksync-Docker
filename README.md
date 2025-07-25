@@ -96,6 +96,7 @@ docker run \
 - `-e 'BRICKSYNC_BRICKOWL_KEY'='YOUR_BRICKOWL_API_KEY'`: Your BrickOwl API Key. **Replace placeholder.**
   - _Note on API Keys:_ Providing API keys via environment variables is recommended for Docker deployments. These will be written into the `bricksync.conf.txt` file inside the container at startup.
 - `-e 'VNC_RESOLUTION'='1280x700'`: Set the screen resolution for the VNC desktop (e.g., `1280x720`, `1920x1080`).
+- `-e 'VNC_PASSWORD'='your_password'`: **(Optional)** Set a password for VNC access. If not provided, VNC access will be without a password.
 - `-p '4459:6901/tcp'`: Map port `4459` on your host to port `6901` (noVNC web access) in the container. You can then access BrickSync via a web browser at `http://<your_docker_host_ip>:4459`.
   - If you also want direct VNC client access, you can add another port mapping like `-p '5901:5901/tcp'` and connect with a VNC viewer to `<your_docker_host_ip>:5901`.
 - `-v '/path/to/host/config':'/mnt/config':'rw'`: **(Optional)** Mount a directory from your host to `/mnt/config` inside the container. Place a `bricksync.conf` file here to be used as the base configuration.
@@ -105,7 +106,7 @@ docker run \
 **Accessing BrickSync:**
 
 - **Via Web Browser (noVNC):** Open `http://<your_docker_host_ip>:<host_port_for_6901>` (e.g., `http://localhost:4459` if running Docker locally and used the example).
-- **Via VNC Client:** Connect to `<your_docker_host_ip>:<host_port_for_5901>` (e.g., `localhost:5901` if you mapped port 5901). No password is set by default for VNC access.
+- **Via VNC Client:** Connect to `<your_docker_host_ip>:<host_port_for_5901>` (e.g., `localhost:5901` if you mapped port 5901). If you set a `VNC_PASSWORD`, you will be prompted for it.
 
 ### Configuration (`bricksync.conf.txt`)
 

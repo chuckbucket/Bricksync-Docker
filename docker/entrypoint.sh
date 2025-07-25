@@ -149,13 +149,27 @@ DISPLAY="${DISPLAY:-:1}"
 VNC_COL_DEPTH="${VNC_COL_DEPTH:-32}"
 VNC_RESOLUTION="${VNC_RESOLUTION:-1600x900}"
 
+VNC_SECURITY_ARGS="-SecurityTypes None -localhost no --I-KNOW-THIS-IS-INSECURE"
+NOVNC_COMMAND="/opt/noVNC/utils/launch.sh --vnc localhost:${VNC_PORT} --listen ${NO_VNC_PORT}"
+
+if [ -n "${VNC_PASSWORD}" ]; then
+    echo "INFO: VNC password is set. Configuring VNC server with password protection."
+    VNC_PASSWORD_FILE="/home/dockeruser/.vnc/passwd"
+    mkdir -p "$(dirname "${VNC_PASSWORD_FILE}")"
+    echo "${VNC_PASSWORD}" | vncpasswd -f > "${VNC_PASSWORD_FILE}"
+    chmod 600 "${VNC_PASSWORD_FILE}"
+    chown dockeruser:dockeruser "${VNC_PASSWORD_FILE}"
+    VNC_SECURITY_ARGS="-SecurityTypes VncAuth -PasswordFile ${VNC_PASSWORD_FILE} -localhost no"
+else
+    echo "INFO: No VNC password provided. Starting VNC server without password protection."
+fi
+
 echo "INFO: Starting noVNC server..."
-/opt/noVNC/utils/launch.sh --vnc localhost:$VNC_PORT --listen $NO_VNC_PORT −desktop BrickSync > /dev/null &
+${NOVNC_COMMAND} > /dev/null &
 NOVNC_PID=$!
 
 echo "INFO: Starting VNC server..."
-vncserver $DISPLAY -depth $VNC_COL_DEPTH -geometry $VNC_RESOLUTION \
-  -SecurityTypes None -localhost no --I-KNOW-THIS-IS-INSECURE &
+vncserver $DISPLAY -depth $VNC_COL_DEPTH -geometry $VNC_RESOLUTION ${VNC_SECURITY_ARGS} &
 VNCSERVER_PID=$!
 
 echo "-----------------------------"
